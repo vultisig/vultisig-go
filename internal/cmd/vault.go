@@ -3,15 +3,20 @@ package cmd
 import (
 	"bufio"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	keygen "github.com/vultisig/commondata/go/vultisig/keygen/v1"
+	vaultType "github.com/vultisig/commondata/go/vultisig/vault/v1"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/vultisig/vultisig-cli/internal/storage"
 	"github.com/vultisig/vultisig-cli/internal/vault"
@@ -40,10 +45,23 @@ var listCmd = &cobra.Command{
 	RunE:  runList,
 }
 
+// inspectCmd represents the vault inspect command
+var inspectCmd = &cobra.Command{
+	Use:   "inspect [vault-label-or-path]",
+	Short: "Inspect a vault and display its details",
+	Long: `Inspect a vault file and display all its details including public keys, keyshares, signers, and metadata.
+You can provide either:
+- A vault label/filename (e.g., "MyVault-abcd1234.vult") to inspect from the default vault directory
+- An absolute path to a vault file anywhere on disk`,
+	Args: cobra.ExactArgs(1),
+	RunE: runInspect,
+}
+
 func init() {
 	rootCmd.AddCommand(vaultCmd)
 	vaultCmd.AddCommand(createCmd)
 	vaultCmd.AddCommand(listCmd)
+	vaultCmd.AddCommand(inspectCmd)
 
 	// Add flags for vault creation
 	createCmd.Flags().StringP("name", "n", "", "Vault name (required)")
@@ -181,6 +199,179 @@ func runList(cmd *cobra.Command, args []string) error {
 		fmt.Printf("%d. %s\n", i+1, vault)
 	}
 
+	return nil
+}
+
+func runInspect(cmd *cobra.Command, args []string) error {
+	vaultInput := args[0]
+	
+	// Determine if input is a path or a vault label
+	var vaultData []byte
+	var err error
+	var vaultPath string
+	
+	if filepath.IsAbs(vaultInput) {
+		// Absolute path provided - read directly
+		vaultPath = vaultInput
+		vaultData, err = os.ReadFile(vaultPath)
+		if err != nil {
+			return fmt.Errorf("failed to read vault file '%s': %w", vaultPath, err)
+		}
+	} else {
+		// Vault label provided - look in default vault directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+		vaultDir := filepath.Join(homeDir, ".vultisig")
+		
+		// Initialize storage
+		localStorage, err := storage.NewLocalVaultStorage(vaultDir)
+		if err != nil {
+			return fmt.Errorf("failed to initialize storage: %w", err)
+		}
+		
+		// Try to read the vault by label
+		vaultData, err = localStorage.GetVault(vaultInput)
+		if err != nil {
+			return fmt.Errorf("failed to read vault '%s': %w", vaultInput, err)
+		}
+		vaultPath = filepath.Join(vaultDir, vaultInput)
+	}
+	
+	// Parse the vault container - handle both base64 and raw protobuf formats
+	var vaultContainer vaultType.VaultContainer
+	
+	// First try to parse as base64-encoded protobuf (vultisig-windows format)
+	if base64Data, err := base64.StdEncoding.DecodeString(string(vaultData)); err == nil {
+		if err := proto.Unmarshal(base64Data, &vaultContainer); err == nil {
+			// Successfully parsed as base64 format
+		} else {
+			// Try parsing the original data as raw protobuf (old CLI format)
+			if err := proto.Unmarshal(vaultData, &vaultContainer); err != nil {
+				return fmt.Errorf("failed to unmarshal vault container (tried both base64 and raw formats): %w", err)
+			}
+		}
+	} else {
+		// Not valid base64, try as raw protobuf
+		if err := proto.Unmarshal(vaultData, &vaultContainer); err != nil {
+			return fmt.Errorf("failed to unmarshal vault container: %w", err)
+		}
+	}
+	
+	// Decode the vault data
+	vaultBytes, err := base64.StdEncoding.DecodeString(vaultContainer.Vault)
+	if err != nil {
+		return fmt.Errorf("failed to decode vault data: %w", err)
+	}
+	
+	// If encrypted, we would need to decrypt here
+	if vaultContainer.IsEncrypted {
+		return fmt.Errorf("encrypted vaults are not supported yet - vault decryption requires password")
+	}
+	
+	// Parse the vault
+	var vault vaultType.Vault
+	if err := proto.Unmarshal(vaultBytes, &vault); err != nil {
+		return fmt.Errorf("failed to unmarshal vault: %w", err)
+	}
+	
+	// Display vault information
+	fmt.Printf("🔍 Vault Inspection Report\n")
+	fmt.Printf("═══════════════════════════════════════════════════════════════\n\n")
+	
+	// Basic Information
+	fmt.Printf("📁 Basic Information:\n")
+	fmt.Printf("   Name: %s\n", vault.Name)
+	fmt.Printf("   File Path: %s\n", vaultPath)
+	fmt.Printf("   Local Party ID: %s\n", vault.LocalPartyId)
+	fmt.Printf("   Reshare Prefix: %s\n", vault.ResharePrefix)
+	if vault.CreatedAt != nil {
+		fmt.Printf("   Created At: %s\n", vault.CreatedAt.AsTime().Format(time.RFC3339))
+	}
+	fmt.Printf("\n")
+	
+	// Library Type
+	fmt.Printf("🔧 Library Type:\n")
+	libTypeStr := "Unknown"
+	switch vault.LibType {
+	case keygen.LibType_LIB_TYPE_GG20:
+		libTypeStr = "GG20 (ECDSA TSS)"
+	case keygen.LibType_LIB_TYPE_DKLS:
+		libTypeStr = "DKLS (Distributed Key Generation and Signing)"
+	}
+	fmt.Printf("   %s (%d)\n", libTypeStr, int32(vault.LibType))
+	fmt.Printf("\n")
+	
+	// Container Information
+	fmt.Printf("📦 Container Information:\n")
+	fmt.Printf("   Version: %d\n", vaultContainer.Version)
+	fmt.Printf("   Is Encrypted: %v\n", vaultContainer.IsEncrypted)
+	fmt.Printf("   Container Size: %d bytes\n", len(vaultData))
+	fmt.Printf("   Vault Data Size: %d bytes\n", len(vaultBytes))
+	fmt.Printf("\n")
+	
+	// Public Keys
+	fmt.Printf("🔑 Public Keys:\n")
+	fmt.Printf("   ECDSA: %s\n", vault.PublicKeyEcdsa)
+	fmt.Printf("   EdDSA: %s\n", vault.PublicKeyEddsa)
+	if vault.HexChainCode != "" {
+		fmt.Printf("   Chain Code: %s\n", vault.HexChainCode)
+	}
+	fmt.Printf("\n")
+	
+	// Signers
+	fmt.Printf("👥 Signers (%d total):\n", len(vault.Signers))
+	for i, signer := range vault.Signers {
+		marker := "   "
+		if signer == vault.LocalPartyId {
+			marker = " ➤ "
+		}
+		fmt.Printf("%s[%d] %s\n", marker, i+1, signer)
+	}
+	fmt.Printf("\n")
+	
+	// Key Shares
+	fmt.Printf("🔐 Key Shares (%d total):\n", len(vault.KeyShares))
+	for i, keyShare := range vault.KeyShares {
+		fmt.Printf("   [%d] Public Key: %s\n", i+1, keyShare.PublicKey)
+		
+		// Determine key type
+		keyType := "Unknown"
+		if keyShare.PublicKey == vault.PublicKeyEcdsa {
+			keyType = "ECDSA"
+		} else if keyShare.PublicKey == vault.PublicKeyEddsa {
+			keyType = "EdDSA"
+		}
+		fmt.Printf("       Type: %s\n", keyType)
+		
+		// Show keyshare info (truncated for security)
+		if len(keyShare.Keyshare) > 0 {
+			keyshareBytes, err := base64.StdEncoding.DecodeString(keyShare.Keyshare)
+			var keyshareInfo string
+			if err != nil {
+				keyshareInfo = "Invalid base64"
+			} else {
+				keyshareInfo = fmt.Sprintf("%d bytes", len(keyshareBytes))
+				if len(keyShare.Keyshare) > 16 {
+					keyshareInfo += fmt.Sprintf(" (%s...)", keyShare.Keyshare[:16])
+				}
+			}
+			fmt.Printf("       Keyshare: %s\n", keyshareInfo)
+		}
+		
+		if i < len(vault.KeyShares)-1 {
+			fmt.Printf("\n")
+		}
+	}
+	fmt.Printf("\n")
+	
+	// Security Notice
+	fmt.Printf("⚠️  Security Notice:\n")
+	fmt.Printf("   This vault contains sensitive cryptographic material.\n")
+	fmt.Printf("   Keep the vault file secure and never share keyshares.\n")
+	fmt.Printf("   The displayed keyshare data is truncated for security.\n")
+	
 	return nil
 }
 

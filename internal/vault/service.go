@@ -513,8 +513,11 @@ func (s *Service) saveVaultToStorage(vault *vaultType.Vault) error {
 		return fmt.Errorf("failed to marshal vault backup: %w", err)
 	}
 
+	// Encode the protobuf data as base64 to match vultisig-windows format
+	base64VaultData := base64.StdEncoding.EncodeToString(vaultBackupData)
+
 	fileName := fmt.Sprintf("%s-%s.vult", vault.Name, vault.PublicKeyEcdsa[:8])
-	return s.storage.SaveVault(fileName, vaultBackupData)
+	return s.storage.SaveVault(fileName, []byte(base64VaultData))
 }
 
 // Removed old generateAndSendSetupMessages method - now handled in runDKLSKeygen
