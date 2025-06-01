@@ -135,6 +135,16 @@ func (s *Service) CreateVault(req CreateVaultRequest) (string, string, error) {
 		"public_key": eddsaResult.PublicKey,
 	}).Info("EdDSA keygen completed")
 
+	if err := relayClient.CompleteSession(req.SessionID, req.LocalPartyId); err != nil {
+		s.logger.WithError(err).Error("Failed to complete session")
+		return "", "", fmt.Errorf("failed to complete session: %w", err)
+	}
+
+	if _, err := relayClient.CheckCompletedParties(req.SessionID, partiesJoined); err != nil {
+		s.logger.WithError(err).Error("Failed to check complete session")
+		return "", "", fmt.Errorf("failed to check complete session: %w", err)
+	}
+
 	// Step 6: Save vault
 	err = s.saveVaultResults(req.Name, req.LocalPartyId, partiesJoined, ecdsaResult, eddsaResult)
 	if err != nil {
@@ -151,7 +161,7 @@ func (s *Service) setupVaultWithServer(req CreateVaultRequest) error {
 		SessionID:          req.SessionID,
 		HexEncryptionKey:   req.HexEncryptionKey,
 		HexChainCode:       req.HexChainCode,
-		LocalPartyId:       "server-1234", // Server will use this as its party ID
+		LocalPartyId:       "Server-1234", // Server will use this as its party ID
 		EncryptionPassword: req.EncryptionPassword,
 		Email:              req.Email,
 		LibType:            types.DKLS,
@@ -161,6 +171,10 @@ func (s *Service) setupVaultWithServer(req CreateVaultRequest) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
+
+	s.logger.WithFields(logrus.Fields{
+		"payload": string(jsonPayload),
+	}).Info("Sending vault creation request to server")
 
 	response, err := http.Post("https://api.vultisig.com/vault/create", "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
