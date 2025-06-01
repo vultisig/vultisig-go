@@ -2,10 +2,15 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +23,7 @@ import (
 	vaultType "github.com/vultisig/commondata/go/vultisig/vault/v1"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/vultisig/vultiserver/relay"
 	"github.com/vultisig/vultisig-cli/internal/storage"
 	"github.com/vultisig/vultisig-cli/internal/vault"
 )
@@ -57,11 +63,25 @@ You can provide either:
 	RunE: runInspect,
 }
 
+// reshareCmd represents the vault reshare command
+var reshareCmd = &cobra.Command{
+	Use:   "reshare [vault-label-or-path]",
+	Short: "Reshare a vault with new committee",
+	Long: `Reshare an existing vault with a new committee of 4 parties (CLI, vultiserver, verifier, and plugin).
+The new committee will have a threshold of 2, meaning 2 out of 4 parties are required to sign transactions.
+You can provide either:
+- A vault label/filename (e.g., "MyVault-abcd1234.vult") to reshare from the default vault directory
+- An absolute path to a vault file anywhere on disk`,
+	Args: cobra.ExactArgs(1),
+	RunE: runReshare,
+}
+
 func init() {
 	rootCmd.AddCommand(vaultCmd)
 	vaultCmd.AddCommand(createCmd)
 	vaultCmd.AddCommand(listCmd)
 	vaultCmd.AddCommand(inspectCmd)
+	vaultCmd.AddCommand(reshareCmd)
 
 	// Add flags for vault creation
 	createCmd.Flags().StringP("name", "n", "", "Vault name (required)")
@@ -74,6 +94,19 @@ func init() {
 	createCmd.MarkFlagRequired("name")
 	createCmd.MarkFlagRequired("email")
 	createCmd.MarkFlagRequired("password")
+
+	// Add flags for vault resharing
+	reshareCmd.Flags().StringP("session", "s", uuid.New().String(), "Session ID (randomly generated if not provided)")
+	reshareCmd.Flags().StringP("party", "p", "", "Local party ID (optional - hostname if not provided)")
+	reshareCmd.Flags().StringP("relay", "r", "https://api.vultisig.com/router", "Relay server URL")
+	reshareCmd.Flags().StringP("verifier", "", "https://api.vultisig.com/verifier", "Verifier server URL")
+	reshareCmd.Flags().StringP("plugin", "", "https://api.vultisig.com/plugin", "Plugin server URL")
+	reshareCmd.Flags().StringP("email", "m", "", "Email (required)")
+	reshareCmd.Flags().StringP("password", "e", "", "Password for vault encryption on server (required)")
+	reshareCmd.Flags().StringP("plugin-id", "i", "", "Plugin ID (required)")
+
+	reshareCmd.MarkFlagRequired("email")
+	reshareCmd.MarkFlagRequired("password")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -204,12 +237,12 @@ func runList(cmd *cobra.Command, args []string) error {
 
 func runInspect(cmd *cobra.Command, args []string) error {
 	vaultInput := args[0]
-	
+
 	// Determine if input is a path or a vault label
 	var vaultData []byte
 	var err error
 	var vaultPath string
-	
+
 	if filepath.IsAbs(vaultInput) {
 		// Absolute path provided - read directly
 		vaultPath = vaultInput
@@ -224,13 +257,13 @@ func runInspect(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to get home directory: %w", err)
 		}
 		vaultDir := filepath.Join(homeDir, ".vultisig")
-		
+
 		// Initialize storage
 		localStorage, err := storage.NewLocalVaultStorage(vaultDir)
 		if err != nil {
 			return fmt.Errorf("failed to initialize storage: %w", err)
 		}
-		
+
 		// Try to read the vault by label
 		vaultData, err = localStorage.GetVault(vaultInput)
 		if err != nil {
@@ -238,10 +271,10 @@ func runInspect(cmd *cobra.Command, args []string) error {
 		}
 		vaultPath = filepath.Join(vaultDir, vaultInput)
 	}
-	
+
 	// Parse the vault container - handle both base64 and raw protobuf formats
 	var vaultContainer vaultType.VaultContainer
-	
+
 	// First try to parse as base64-encoded protobuf (vultisig-windows format)
 	if base64Data, err := base64.StdEncoding.DecodeString(string(vaultData)); err == nil {
 		if err := proto.Unmarshal(base64Data, &vaultContainer); err == nil {
@@ -258,28 +291,28 @@ func runInspect(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to unmarshal vault container: %w", err)
 		}
 	}
-	
+
 	// Decode the vault data
 	vaultBytes, err := base64.StdEncoding.DecodeString(vaultContainer.Vault)
 	if err != nil {
 		return fmt.Errorf("failed to decode vault data: %w", err)
 	}
-	
+
 	// If encrypted, we would need to decrypt here
 	if vaultContainer.IsEncrypted {
 		return fmt.Errorf("encrypted vaults are not supported yet - vault decryption requires password")
 	}
-	
+
 	// Parse the vault
 	var vault vaultType.Vault
 	if err := proto.Unmarshal(vaultBytes, &vault); err != nil {
 		return fmt.Errorf("failed to unmarshal vault: %w", err)
 	}
-	
+
 	// Display vault information
 	fmt.Printf("🔍 Vault Inspection Report\n")
 	fmt.Printf("═══════════════════════════════════════════════════════════════\n\n")
-	
+
 	// Basic Information
 	fmt.Printf("📁 Basic Information:\n")
 	fmt.Printf("   Name: %s\n", vault.Name)
@@ -290,7 +323,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 		fmt.Printf("   Created At: %s\n", vault.CreatedAt.AsTime().Format(time.RFC3339))
 	}
 	fmt.Printf("\n")
-	
+
 	// Library Type
 	fmt.Printf("🔧 Library Type:\n")
 	libTypeStr := "Unknown"
@@ -302,7 +335,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("   %s (%d)\n", libTypeStr, int32(vault.LibType))
 	fmt.Printf("\n")
-	
+
 	// Container Information
 	fmt.Printf("📦 Container Information:\n")
 	fmt.Printf("   Version: %d\n", vaultContainer.Version)
@@ -310,7 +343,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 	fmt.Printf("   Container Size: %d bytes\n", len(vaultData))
 	fmt.Printf("   Vault Data Size: %d bytes\n", len(vaultBytes))
 	fmt.Printf("\n")
-	
+
 	// Public Keys
 	fmt.Printf("🔑 Public Keys:\n")
 	fmt.Printf("   ECDSA: %s\n", vault.PublicKeyEcdsa)
@@ -319,7 +352,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 		fmt.Printf("   Chain Code: %s\n", vault.HexChainCode)
 	}
 	fmt.Printf("\n")
-	
+
 	// Signers
 	fmt.Printf("👥 Signers (%d total):\n", len(vault.Signers))
 	for i, signer := range vault.Signers {
@@ -330,12 +363,12 @@ func runInspect(cmd *cobra.Command, args []string) error {
 		fmt.Printf("%s[%d] %s\n", marker, i+1, signer)
 	}
 	fmt.Printf("\n")
-	
+
 	// Key Shares
 	fmt.Printf("🔐 Key Shares (%d total):\n", len(vault.KeyShares))
 	for i, keyShare := range vault.KeyShares {
 		fmt.Printf("   [%d] Public Key: %s\n", i+1, keyShare.PublicKey)
-		
+
 		// Determine key type
 		keyType := "Unknown"
 		if keyShare.PublicKey == vault.PublicKeyEcdsa {
@@ -344,7 +377,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 			keyType = "EdDSA"
 		}
 		fmt.Printf("       Type: %s\n", keyType)
-		
+
 		// Show keyshare info (truncated for security)
 		if len(keyShare.Keyshare) > 0 {
 			keyshareBytes, err := base64.StdEncoding.DecodeString(keyShare.Keyshare)
@@ -359,19 +392,271 @@ func runInspect(cmd *cobra.Command, args []string) error {
 			}
 			fmt.Printf("       Keyshare: %s\n", keyshareInfo)
 		}
-		
+
 		if i < len(vault.KeyShares)-1 {
 			fmt.Printf("\n")
 		}
 	}
 	fmt.Printf("\n")
-	
+
 	// Security Notice
 	fmt.Printf("⚠️  Security Notice:\n")
 	fmt.Printf("   This vault contains sensitive cryptographic material.\n")
 	fmt.Printf("   Keep the vault file secure and never share keyshares.\n")
 	fmt.Printf("   The displayed keyshare data is truncated for security.\n")
-	
+
+	return nil
+}
+
+func runReshare(cmd *cobra.Command, args []string) error {
+	vaultInput := args[0]
+	sessionID, _ := cmd.Flags().GetString("session")
+	localPartyID, _ := cmd.Flags().GetString("party")
+	relayServer, _ := cmd.Flags().GetString("relay")
+	verifierServer, _ := cmd.Flags().GetString("verifier")
+	pluginServer, _ := cmd.Flags().GetString("plugin")
+	email, _ := cmd.Flags().GetString("email")
+	password, _ := cmd.Flags().GetString("password")
+	pluginID, _ := cmd.Flags().GetString("plugin-id")
+
+	// Load the existing vault
+	var vaultData []byte
+	var err error
+	var vaultPath string
+
+	if filepath.IsAbs(vaultInput) {
+		// Absolute path provided - read directly
+		vaultPath = vaultInput
+		vaultData, err = os.ReadFile(vaultPath)
+		if err != nil {
+			return fmt.Errorf("failed to read vault file '%s': %w", vaultPath, err)
+		}
+	} else {
+		// Vault label provided - look in default vault directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+		vaultDir := filepath.Join(homeDir, ".vultisig")
+
+		// Initialize storage
+		localStorage, err := storage.NewLocalVaultStorage(vaultDir)
+		if err != nil {
+			return fmt.Errorf("failed to initialize storage: %w", err)
+		}
+
+		// Try to read the vault by label
+		vaultData, err = localStorage.GetVault(vaultInput)
+		if err != nil {
+			return fmt.Errorf("failed to read vault '%s': %w", vaultInput, err)
+		}
+		vaultPath = filepath.Join(vaultDir, vaultInput)
+	}
+
+	// Parse the vault container
+	var vaultContainer vaultType.VaultContainer
+
+	// First try to parse as base64-encoded protobuf (vultisig-windows format)
+	if base64Data, err := base64.StdEncoding.DecodeString(string(vaultData)); err == nil {
+		if err := proto.Unmarshal(base64Data, &vaultContainer); err == nil {
+			// Successfully parsed as base64 format
+		} else {
+			// Try parsing the original data as raw protobuf (old CLI format)
+			if err := proto.Unmarshal(vaultData, &vaultContainer); err != nil {
+				return fmt.Errorf("failed to unmarshal vault container (tried both base64 and raw formats): %w", err)
+			}
+		}
+	} else {
+		// Not valid base64, try as raw protobuf
+		if err := proto.Unmarshal(vaultData, &vaultContainer); err != nil {
+			return fmt.Errorf("failed to unmarshal vault container: %w", err)
+		}
+	}
+
+	// Decode the vault data
+	vaultBytes, err := base64.StdEncoding.DecodeString(vaultContainer.Vault)
+	if err != nil {
+		return fmt.Errorf("failed to decode vault data: %w", err)
+	}
+
+	// If encrypted, we would need to decrypt here
+	if vaultContainer.IsEncrypted {
+		return fmt.Errorf("encrypted vaults are not supported yet - vault decryption requires password")
+	}
+
+	// Parse the vault
+	var vault vaultType.Vault
+	if err := proto.Unmarshal(vaultBytes, &vault); err != nil {
+		return fmt.Errorf("failed to unmarshal vault: %w", err)
+	}
+
+	// Generate new encryption key for reshare
+	keyBytes := make([]byte, 32)
+	if _, err := rand.Read(keyBytes); err != nil {
+		return fmt.Errorf("failed to generate encryption key: %w", err)
+	}
+	encryptionKey := hex.EncodeToString(keyBytes)
+
+	var localParty string
+	if localPartyID == "" {
+		localParty, err = os.Hostname()
+		if err != nil {
+			return fmt.Errorf("failed to get hostname: %w", err)
+		}
+		// normalize hostname to remove .local
+		localParty = strings.TrimSuffix(localParty, ".local")
+	} else {
+		localParty = localPartyID
+	}
+
+	// Show reshare info
+	fmt.Printf("Resharing vault '%s'...\n", vault.Name)
+	fmt.Printf("Original Public Key: %s\n", vault.PublicKeyEcdsa)
+	fmt.Printf("Session ID: %s\n", sessionID)
+	fmt.Printf("Local Party ID: %s\n", localParty)
+	fmt.Printf("Relay Server: %s\n", relayServer)
+	fmt.Printf("Verifier Server: %s\n", verifierServer)
+	fmt.Printf("Plugin Server: %s\n", pluginServer)
+	fmt.Printf("Encryption Key: %s\n", encryptionKey)
+	fmt.Printf("Email: %s\n", email)
+	fmt.Printf("Old Parties: %v\n", vault.Signers)
+	fmt.Println()
+
+	// Confirm before proceeding
+	if !askForConfirmation("Do you want to proceed with vault resharing?") {
+		fmt.Println("Vault resharing cancelled.")
+		return nil
+	}
+
+	// Create reshare requests for all servers
+	reshareReq := struct {
+		Name               string   `json:"name"`
+		PublicKey          string   `json:"public_key"`
+		SessionID          string   `json:"session_id"`
+		HexEncryptionKey   string   `json:"hex_encryption_key"`
+		HexChainCode       string   `json:"hex_chain_code"`
+		LocalPartyId       string   `json:"local_party_id"`
+		OldParties         []string `json:"old_parties"`
+		EncryptionPassword string   `json:"encryption_password"`
+		Email              string   `json:"email"`
+		OldResharePrefix   string   `json:"old_reshare_prefix"`
+		LibType            int      `json:"lib_type"`
+		PluginID           string   `json:"plugin_id"`
+		ReshareType        int      `json:"reshare_type"`
+	}{
+		Name:               vault.Name,
+		PublicKey:          vault.PublicKeyEcdsa,
+		SessionID:          sessionID,
+		HexEncryptionKey:   encryptionKey,
+		HexChainCode:       vault.HexChainCode,
+		LocalPartyId:       localParty,
+		OldParties:         vault.Signers,
+		EncryptionPassword: password,
+		Email:              email,
+		OldResharePrefix:   vault.ResharePrefix,
+		LibType:            1, // DKLS
+		PluginID:           pluginID,
+		ReshareType:        1, // Reshare plugin
+	}
+
+	// Send reshare requests to all servers
+	fmt.Println("Initiating reshare with all servers...")
+
+	// Send to vultiserver
+	if err := sendReshareRequest("https://api.vultisig.com/vault/reshare", reshareReq); err != nil {
+		return fmt.Errorf("failed to initiate reshare with vultiserver: %w", err)
+	}
+	fmt.Println("✓ Vultiserver notified")
+
+	// Send to verifier
+	if err := sendReshareRequest(verifierServer+"/vault/reshare", reshareReq); err != nil {
+		return fmt.Errorf("failed to initiate reshare with verifier: %w", err)
+	}
+	fmt.Println("✓ Verifier notified")
+
+	// Send to plugin
+	if err := sendReshareRequest(pluginServer+"/vault/reshare", reshareReq); err != nil {
+		return fmt.Errorf("failed to initiate reshare with plugin: %w", err)
+	}
+	fmt.Println("✓ Plugin notified")
+
+	// Wait for all 4 parties to join the session
+	fmt.Println("\nWaiting for all 4 parties to join the reshare session...")
+
+	if err := waitForAllPartiesToJoin(sessionID, relayServer, localParty); err != nil {
+		return fmt.Errorf("failed to wait for all parties: %w", err)
+	}
+
+	fmt.Println("\n✅ All 4 parties have joined the reshare session!")
+	fmt.Printf("Session ID: %s\n", sessionID)
+	fmt.Printf("New committee: CLI, Vultiserver, Verifier, Plugin (threshold: 2 of 4)\n")
+	fmt.Printf("The reshare process will now proceed automatically.\n")
+
+	return nil
+}
+
+func waitForAllPartiesToJoin(sessionID, relayServer, localParty string) error {
+	// Import relay client to check session status
+	relayClient := relay.NewRelayClient(relayServer)
+
+	// Register ourselves with the relay
+	if err := relayClient.RegisterSession(sessionID, localParty); err != nil {
+		return fmt.Errorf("failed to register with relay: %w", err)
+	}
+
+	// Wait for all 4 parties to join: CLI, Vultiserver, Verifier, Plugin
+	expectedParties := 4
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	for ctx.Err() == nil {
+		partiesJoined, err := relayClient.GetSession(sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to get session status: %w", err)
+		}
+
+		fmt.Printf("Parties joined (%d/4): %v\n", len(partiesJoined), partiesJoined)
+
+		if len(partiesJoined) == expectedParties {
+			// All 4 parties joined, start the session with new committee
+			newCommittee := []string{localParty, "Server-1234", "verifier-party", "plugin-party"}
+
+			// Start session with threshold of 2 for the new 4-party committee
+			if err := relayClient.StartSession(sessionID, newCommittee); err != nil {
+				return fmt.Errorf("failed to start reshare session: %w", err)
+			}
+
+			fmt.Printf("✓ Started reshare session with new committee (threshold: 2 of 4)\n")
+			return nil
+		}
+
+		time.Sleep(2 * time.Second)
+	}
+
+	return fmt.Errorf("timeout waiting for all parties to join")
+}
+
+func sendReshareRequest(url string, req interface{}) error {
+	jsonPayload, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("failed to send request to %s: %w", url, err)
+	}
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("server rejected request (status %d): %s", response.StatusCode, string(body))
+	}
+
 	return nil
 }
 
