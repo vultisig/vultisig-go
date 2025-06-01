@@ -249,7 +249,7 @@ func (s *Service) runDKLSKeygen(sessionID, hexEncryptionKey, localPartyID string
 	}
 
 	relayClient := relay.NewRelayClient(s.relayServer)
-	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup); err != nil {
+	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, "", ""); err != nil {
 		return nil, fmt.Errorf("failed to upload setup message: %w", err)
 	}
 

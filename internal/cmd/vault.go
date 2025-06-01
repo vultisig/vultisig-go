@@ -690,12 +690,14 @@ func performReshare(vault *vaultType.Vault, sessionID, encryptionKey, relayServe
 	return nil
 }
 
-func createQcSetupAndReshare(vault *vaultType.Vault, sessionID, encryptionKey, localParty string, newCommittee []string, publicKey string, isEdDSA bool) error {
+func createQcSetupAndReshare(v *vaultType.Vault, sessionID, encryptionKey, localParty string, newCommittee []string, publicKey string, isEdDSA bool) error {
 	keyType := map[bool]string{true: "EdDSA", false: "ECDSA"}[isEdDSA]
+
+	mpcWrapper := vault.NewMPCWrapperImp(isEdDSA)
 
 	// Get the keyshare for this public key
 	var keyshareBase64 string
-	for _, ks := range vault.KeyShares {
+	for _, ks := range v.KeyShares {
 		if ks.PublicKey == publicKey {
 			keyshareBase64 = ks.Keyshare
 			break
@@ -705,8 +707,18 @@ func createQcSetupAndReshare(vault *vaultType.Vault, sessionID, encryptionKey, l
 		return fmt.Errorf("keyshare not found for public key %s", publicKey)
 	}
 
+	decodedKeyshare, err := base64.StdEncoding.DecodeString(keyshareBase64)
+	if err != nil {
+		return fmt.Errorf("failed to decode keyshare: %w", err)
+	}
+
+	keyshareHandle, err := mpcWrapper.KeyshareFromBytes(decodedKeyshare)
+	if err != nil {
+		return fmt.Errorf("failed to create keyshare from bytes: %w", err)
+	}
+
 	// Calculate committee information for QC setup
-	oldCommittee := vault.Signers
+	oldCommittee := v.Signers
 	allCommittee := combineCommittees(oldCommittee, newCommittee)
 	oldIndices, newIndices := getCommitteeIndices(allCommittee, oldCommittee, newCommittee)
 
@@ -716,40 +728,22 @@ func createQcSetupAndReshare(vault *vaultType.Vault, sessionID, encryptionKey, l
 	fmt.Printf("      Combined: %v\n", allCommittee)
 	fmt.Printf("      Threshold: 2 of %d\n", len(newCommittee))
 
-	// Create a simplified QC setup message structure
-	// This would normally use the MPC wrapper, but we'll create a compatible structure
-	setupData := map[string]interface{}{
-		"type":       "qc_setup",
-		"keyType":    keyType,
-		"publicKey":  publicKey,
-		"threshold":  2,
-		"allParties": allCommittee,
-		"oldIndices": oldIndices,
-		"newIndices": newIndices,
-		"localParty": localParty,
-		"sessionId":  sessionID,
+	setupMsg, err := mpcWrapper.QcSetupMsgNew(keyshareHandle, 2, allCommittee, oldIndices, newIndices)
+	if err != nil {
+		return fmt.Errorf("failed to create QC setup message: %w", err)
 	}
 
-	// For demonstration, we'll serialize this as JSON
-	// In a real implementation, this would be the binary MPC setup message
-	setupBytes, err := json.Marshal(setupData)
-	if err != nil {
-		return fmt.Errorf("failed to create setup message: %w", err)
-	}
+	hexBytes := hex.EncodeToString(setupMsg)
+	fmt.Println("setup message bytes", hexBytes)
 
 	// Encrypt and upload setup message
 	relayClient := relay.NewRelayClient("https://api.vultisig.com/router")
-	encryptedSetup, err := encodeEncryptMessage(setupBytes, encryptionKey)
+	encryptedSetup, err := encodeEncryptMessage(setupMsg, encryptionKey)
 	if err != nil {
 		return fmt.Errorf("failed to encrypt setup message: %w", err)
 	}
 
-	additionalHeader := ""
-	if isEdDSA {
-		additionalHeader = "eddsa"
-	}
-
-	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, additionalHeader); err != nil {
+	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, "", ""); err != nil {
 		return fmt.Errorf("failed to upload setup message: %w", err)
 	}
 

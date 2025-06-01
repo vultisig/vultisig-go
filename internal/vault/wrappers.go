@@ -17,7 +17,17 @@ type MPCKeygenWrapper interface {
 	KeygenSessionFree(session Handle) error
 }
 
+type MPCQcWrapper interface {
+	QcSetupMsgNew(keyshareHandle Handle, threshold int, ids []string, oldParties []int, newParties []int) ([]byte, error)
+	QcSessionFromSetup(setupMsg []byte, id string, keyshareHandle Handle) (Handle, error)
+	QcSessionOutputMessage(session Handle) ([]byte, error)
+	QcSessionMessageReceiver(session Handle, message []byte, index int) (string, error)
+	QcSessionInputMessage(session Handle, message []byte) (bool, error)
+	QcSessionFinish(session Handle) (Handle, error)
+}
+
 type MPCKeyshareWrapper interface {
+	KeyshareFromBytes(buf []byte) (Handle, error)
 	KeyshareToBytes(share Handle) ([]byte, error)
 	KeysharePublicKey(share Handle) ([]byte, error)
 	KeyshareChainCode(share Handle) ([]byte, error)
@@ -116,4 +126,59 @@ func (w *MPCWrapperImp) KeyshareFree(share Handle) error {
 		return nil // EdDSA handles cleanup automatically
 	}
 	return session.DklsKeyshareFree(session.Handle(share))
+}
+
+func (w *MPCWrapperImp) QcSetupMsgNew(keyshareHandle Handle, threshod int, ids []string, oldParties []int, newParties []int) ([]byte, error) {
+	if w.isEdDSA {
+		return eddsaSession.SchnorrQcSetupMsgNew(eddsaSession.Handle(keyshareHandle), threshod, ids, oldParties, newParties)
+	}
+	return session.DklsQcSetupMsgNew(session.Handle(keyshareHandle), threshod, ids, oldParties, newParties)
+}
+
+func (w *MPCWrapperImp) QcSessionFromSetup(setupMsg []byte, id string, keyshareHandle Handle) (Handle, error) {
+	if w.isEdDSA {
+		h, err := eddsaSession.SchnorrQcSessionFromSetup(setupMsg, id, eddsaSession.Handle(keyshareHandle))
+		return Handle(h), err
+	}
+	h, err := session.DklsQcSessionFromSetup(setupMsg, id, session.Handle(keyshareHandle))
+	return Handle(h), err
+}
+
+func (w *MPCWrapperImp) QcSessionOutputMessage(h Handle) ([]byte, error) {
+	if w.isEdDSA {
+		return eddsaSession.SchnorrQcSessionOutputMessage(eddsaSession.Handle(h))
+	}
+	return session.DklsQcSessionOutputMessage(session.Handle(h))
+}
+
+func (w *MPCWrapperImp) QcSessionMessageReceiver(h Handle, message []byte, index int) (string, error) {
+	if w.isEdDSA {
+		return eddsaSession.SchnorrQcSessionMessageReceiver(eddsaSession.Handle(h), message, index)
+	}
+	return session.DklsQcSessionMessageReceiver(session.Handle(h), message, index)
+}
+
+func (w *MPCWrapperImp) QcSessionInputMessage(h Handle, message []byte) (bool, error) {
+	if w.isEdDSA {
+		return eddsaSession.SchnorrQcSessionInputMessage(eddsaSession.Handle(h), message)
+	}
+	return session.DklsQcSessionInputMessage(session.Handle(h), message)
+}
+
+func (w *MPCWrapperImp) QcSessionFinish(h Handle) (Handle, error) {
+	if w.isEdDSA {
+		h1, err := eddsaSession.SchnorrQcSessionFinish(eddsaSession.Handle(h))
+		return Handle(h1), err
+	}
+	shareHandle, err := session.DklsQcSessionFinish(session.Handle(h))
+	return Handle(shareHandle), err
+}
+
+func (w *MPCWrapperImp) KeyshareFromBytes(buf []byte) (Handle, error) {
+	if w.isEdDSA {
+		h, err := eddsaSession.SchnorrKeyshareFromBytes(buf)
+		return Handle(h), err
+	}
+	h, err := session.DklsKeyshareFromBytes(buf)
+	return Handle(h), err
 }
