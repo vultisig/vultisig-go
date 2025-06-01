@@ -9,6 +9,7 @@ require (
 	github.com/vultisig/commondata v0.0.0-20250430024109-a2492623ef05
 	github.com/vultisig/vultiserver v0.0.0-20250515110921-82d56d3d9cc9
 	google.golang.org/protobuf v1.36.6
+	go-wrapper v0.0.0
 )
 
 require (
@@ -60,4 +61,5 @@ replace (
 	github.com/cwespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.1
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	nhooyr.io/websocket => github.com/coder/websocket v1.8.6
+	go-wrapper => ../go-wrappers
 )

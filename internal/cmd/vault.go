@@ -49,7 +49,7 @@ func init() {
 	createCmd.Flags().StringP("name", "n", "", "Vault name (required)")
 	createCmd.Flags().StringP("session", "s", uuid.New().String(), "Session ID (randomly generated if not provided)")
 	createCmd.Flags().StringP("party", "p", "", "Local party ID (optional - hostname if not provided)")
-	createCmd.Flags().StringP("relay", "r", "https://api.vultisig.com/router/", "Relay server URL")
+	createCmd.Flags().StringP("relay", "r", "https://api.vultisig.com/router", "Relay server URL")
 	createCmd.Flags().StringP("email", "m", "", "Email (required)")
 	createCmd.Flags().StringP("password", "e", "", "Password for vault encryption on server (required)")
 
