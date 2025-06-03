@@ -7,8 +7,8 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/vultisig/commondata v0.0.0-20250430024109-a2492623ef05
+	github.com/vultisig/go-wrappers v0.0.0-20250403041248-86911e8aa33f
 	github.com/vultisig/vultiserver v0.0.0-20250601211546-7efbcde2a802
-	go-wrapper v0.0.0
 	google.golang.org/protobuf v1.36.6
 )
 
@@ -60,6 +60,5 @@ replace (
 	github.com/agl/ed25519 => github.com/binance-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
 	github.com/cwespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.1.1
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
-	go-wrapper => ../go-wrappers
 	nhooyr.io/websocket => github.com/coder/websocket v1.8.6
 )
