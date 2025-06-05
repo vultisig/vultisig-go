@@ -21,8 +21,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/vultisig/vultisig-cli/internal/storage"
-	"github.com/vultisig/vultisig-cli/internal/types"
+	"github.com/vultisig/vultisig-go/internal/crypto"
+	"github.com/vultisig/vultisig-go/internal/storage"
+	"github.com/vultisig/vultisig-go/internal/types"
 )
 
 // KeygenResult represents the result of a DKLS keygen operation
@@ -243,7 +244,7 @@ func (s *Service) runDKLSKeygen(sessionID, hexEncryptionKey, localPartyID string
 	}
 
 	// Encrypt and upload setup message
-	encryptedSetup, err := s.encodeEncryptMessage(setupMessage, hexEncryptionKey)
+	encryptedSetup, err := encodeEncryptMessage(setupMessage, hexEncryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt setup message: %w", err)
 	}
@@ -284,17 +285,6 @@ func (s *Service) runDKLSKeygen(sessionID, hexEncryptionKey, localPartyID string
 	}).Info("DKLS keygen completed successfully")
 
 	return result, nil
-}
-
-// getKeygenThreshold calculates the threshold for the given number of signers
-func getKeygenThreshold(signers int) int {
-	// This follows the formula: Math.ceil((signers * 2) / 3) from vultisig-windows
-	// For 2 signers: ceil((2 * 2) / 3) = ceil(4/3) = ceil(1.33) = 2
-	// For 2-of-2 fast vault, we use threshold = 2
-	if signers == 2 {
-		return 2
-	}
-	return (signers*2 + 2) / 3 // Integer ceiling division
 }
 
 // runKeygenProtocol runs the actual keygen protocol with message passing
@@ -424,7 +414,7 @@ func (s *Service) processKeygenInbound(mpcWrapper MPCKeygenWrapper, handle Handl
 				}
 
 				// Decrypt the message
-				inboundBody, err := s.decodeDecryptMessage(message.Body, hexEncryptionKey)
+				inboundBody, err := decodeDecryptMessage(message.Body, hexEncryptionKey)
 				if err != nil {
 					s.logger.WithError(err).Error("Failed to decrypt inbound message")
 					continue
@@ -536,45 +526,6 @@ func (s *Service) saveVaultToStorage(vault *vaultType.Vault) error {
 
 // Removed old generateAndSendSetupMessages method - now handled in runDKLSKeygen
 
-// encodeEncryptMessage encrypts and encodes a message using AES-GCM
-// This follows the same pattern as verifier/common/utils.go
-func (s *Service) encodeEncryptMessage(message []byte, hexEncryptionKey string) (string, error) {
-	// First base64 encode the message
-	base64EncodedMessage := base64.StdEncoding.EncodeToString(message)
-
-	// Then encrypt using AES-GCM
-	encryptedMessage, err := EncryptGCM(base64EncodedMessage, hexEncryptionKey)
-	if err != nil {
-		return "", fmt.Errorf("failed to encrypt message: %w", err)
-	}
-
-	return encryptedMessage, nil
-}
-
-// decodeDecryptMessage decodes and decrypts a message using AES-GCM
-// This follows the same pattern as verifier/vault/reshare.go decodeDecryptMessage
-func (s *Service) decodeDecryptMessage(encodedMessage, hexEncryptionKey string) ([]byte, error) {
-	// First decode from base64
-	encryptedMessage, err := base64.StdEncoding.DecodeString(encodedMessage)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64: %w", err)
-	}
-
-	// Decrypt using AES-GCM
-	decryptedMessage, err := DecryptGCM(encryptedMessage, hexEncryptionKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt message: %w", err)
-	}
-
-	// The decrypted message is a base64-encoded string, so decode it
-	inboundBody, err := base64.StdEncoding.DecodeString(string(decryptedMessage))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode inbound message: %w", err)
-	}
-
-	return inboundBody, nil
-}
-
 // saveVaultResults saves the keygen results to a vault file
 func (s *Service) saveVaultResults(vaultName, localPartyId string, partiesJoined []string, ecdsaResult, eddsaResult *KeygenResult) error {
 	vault := &vaultType.Vault{
@@ -600,4 +551,52 @@ func (s *Service) saveVaultResults(vaultName, localPartyId string, partiesJoined
 	}
 
 	return s.saveVaultToStorage(vault)
+}
+
+// getKeygenThreshold calculates the threshold for the given number of signers
+func getKeygenThreshold(signers int) int {
+	// This follows the formula: Math.ceil((signers * 2) / 3) from vultisig-windows
+	// For 2 signers: ceil((2 * 2) / 3) = ceil(4/3) = ceil(1.33) = 2
+	// For 2-of-2 fast vault, we use threshold = 2
+	if signers == 2 {
+		return 2
+	}
+	return (signers*2 + 2) / 3 // Integer ceiling division
+}
+
+// encodeEncryptMessage encrypts and encodes a message using AES-GCM
+func encodeEncryptMessage(message []byte, hexEncryptionKey string) (string, error) {
+	// First base64 encode the message
+	base64EncodedMessage := base64.StdEncoding.EncodeToString(message)
+
+	// Then encrypt using AES-GCM
+	encryptedMessage, err := crypto.EncryptGCM(base64EncodedMessage, hexEncryptionKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to encrypt message: %w", err)
+	}
+
+	return encryptedMessage, nil
+}
+
+// decodeDecryptMessage decodes and decrypts a message using AES-GCM
+func decodeDecryptMessage(encodedMessage, hexEncryptionKey string) ([]byte, error) {
+	// First decode from base64
+	encryptedMessage, err := base64.StdEncoding.DecodeString(encodedMessage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode base64: %w", err)
+	}
+
+	// Decrypt using AES-GCM
+	decryptedMessage, err := crypto.DecryptGCM(encryptedMessage, hexEncryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt message: %w", err)
+	}
+
+	// The decrypted message is a base64-encoded string, so decode it
+	inboundBody, err := base64.StdEncoding.DecodeString(string(decryptedMessage))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode inbound message: %w", err)
+	}
+
+	return inboundBody, nil
 }

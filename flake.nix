@@ -37,7 +37,7 @@
                   };
 
                   enterShell = ''
-                    echo "vultisig-cli shell"
+                    echo "vultisig-go shell"
                   '';
                 })
               ];
