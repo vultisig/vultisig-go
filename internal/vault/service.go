@@ -378,7 +378,7 @@ func (s *Service) processKeygenOutbound(mpcWrapper MPCKeygenWrapper, handle Hand
 			}
 		}
 
-		time.Sleep(50 * time.Millisecond) // Small delay between sends
+		time.Sleep(500 * time.Millisecond) // Small delay between sends
 	}
 }
 
