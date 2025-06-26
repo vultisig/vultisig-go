@@ -10,8 +10,8 @@ import (
 type ReshareRequest = protocol.ReshareRequest
 
 // SendReshareRequests re-exports the protocol function for compatibility
-func SendReshareRequests(req ReshareRequest, verifierServer, pluginServer string) error {
-	return protocol.SendReshareRequests(req, verifierServer, pluginServer)
+func SendReshareRequests(req ReshareRequest, verifierServer string) error {
+	return protocol.SendReshareRequests(req, verifierServer)
 }
 
 // CreateQcSetupAndReshare re-exports the protocol function for compatibility

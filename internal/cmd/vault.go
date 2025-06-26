@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -86,7 +87,6 @@ func init() {
 	reshareCmd.Flags().StringP("party", "p", "", "Local party ID (optional - hostname if not provided)")
 	reshareCmd.Flags().StringP("relay", "r", "https://api.vultisig.com/router", "Relay server URL")
 	reshareCmd.Flags().StringP("verifier", "", "https://api.vultisig.com/verifier", "Verifier server URL")
-	reshareCmd.Flags().StringP("plugin", "", "https://api.vultisig.com/plugin", "Plugin server URL")
 	reshareCmd.Flags().StringP("email", "m", "", "Email (required)")
 	reshareCmd.Flags().StringP("password", "e", "", "Password for vault encryption on server (required)")
 	reshareCmd.Flags().StringP("plugin-id", "i", "", "Plugin ID (required)")
@@ -332,7 +332,6 @@ func runReshare(cmd *cobra.Command, args []string) error {
 	localPartyID, _ := cmd.Flags().GetString("party")
 	relayServer, _ := cmd.Flags().GetString("relay")
 	verifierServer, _ := cmd.Flags().GetString("verifier")
-	pluginServer, _ := cmd.Flags().GetString("plugin")
 	email, _ := cmd.Flags().GetString("email")
 	password, _ := cmd.Flags().GetString("password")
 	pluginID, _ := cmd.Flags().GetString("plugin-id")
@@ -367,7 +366,6 @@ func runReshare(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Local Party ID: %s\n", localParty)
 	fmt.Printf("Relay Server: %s\n", relayServer)
 	fmt.Printf("Verifier Server: %s\n", verifierServer)
-	fmt.Printf("Plugin Server: %s\n", pluginServer)
 	fmt.Printf("Encryption Key: %s\n", encryptionKey)
 	fmt.Printf("Email: %s\n", email)
 	fmt.Printf("Old Parties: %v\n", vault.Signers)
@@ -398,19 +396,25 @@ func runReshare(cmd *cobra.Command, args []string) error {
 
 	// Send reshare requests to all servers
 	fmt.Println("Initiating reshare with all servers...")
-	if err := utils.SendReshareRequests(reshareReq, verifierServer, pluginServer); err != nil {
+	if err := utils.SendReshareRequests(reshareReq, verifierServer); err != nil {
 		return err
 	}
 
 	// Wait for all 4 parties to join the session and then start the reshare
 	fmt.Println("\nWaiting for all 4 parties to join the reshare session...")
 
-	newCommittee, err := utils.WaitForPartiesToJoin(sessionID, relayServer, localParty, 4, 10*time.Minute)
+	partiesJoined, err := utils.WaitForPartiesToJoin(sessionID, relayServer, localParty, 4, 10*time.Minute)
 	if err != nil {
 		return fmt.Errorf("failed to wait for all parties: %w", err)
 	}
 
-	newCommittee = []string{"Server-1234", "verifier", "vultisig-dca-0000"}
+	// Select all parties except server-*
+	newCommittee := []string{}
+	for _, party := range partiesJoined {
+		if !strings.HasPrefix(strings.ToLower(party), "server-") {
+			newCommittee = append(newCommittee, party)
+		}
+	}
 
 	fmt.Println("\n✅ All 4 parties have joined the reshare session!")
 	fmt.Printf("Session ID: %s\n", sessionID)

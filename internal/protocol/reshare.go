@@ -37,7 +37,7 @@ type ReshareRequest struct {
 }
 
 // SendReshareRequests sends reshare requests to all required servers
-func SendReshareRequests(req ReshareRequest, verifierServer, pluginServer string) error {
+func SendReshareRequests(req ReshareRequest, verifierServer string) error {
 	// Send to vultiserver
 	if err := sendJSONRequest("https://api.vultisig.com/vault/reshare", req); err != nil {
 		return fmt.Errorf("failed to initiate reshare with vultiserver: %w", err)
@@ -49,12 +49,6 @@ func SendReshareRequests(req ReshareRequest, verifierServer, pluginServer string
 		return fmt.Errorf("failed to initiate reshare with verifier: %w", err)
 	}
 	fmt.Println("✓ Verifier notified")
-
-	// Send to plugin
-	if err := sendJSONRequest(pluginServer+"/vault/reshare", req); err != nil {
-		return fmt.Errorf("failed to initiate reshare with plugin: %w", err)
-	}
-	fmt.Println("✓ Plugin notified")
 
 	return nil
 }
