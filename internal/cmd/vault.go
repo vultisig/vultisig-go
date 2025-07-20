@@ -77,6 +77,7 @@ func init() {
 	createCmd.Flags().StringP("relay", "r", "https://api.vultisig.com/router", "Relay server URL")
 	createCmd.Flags().StringP("email", "m", "", "Email (required)")
 	createCmd.Flags().StringP("password", "e", "", "Password for vault encryption on server (required)")
+	createCmd.Flags().StringP("local-password", "l", "", "Local password for vault encryption")
 
 	createCmd.MarkFlagRequired("name")
 	createCmd.MarkFlagRequired("email")
@@ -90,10 +91,13 @@ func init() {
 	reshareCmd.Flags().StringP("email", "m", "", "Email (required)")
 	reshareCmd.Flags().StringP("password", "e", "", "Password for vault encryption on server (required)")
 	reshareCmd.Flags().StringP("plugin-id", "i", "", "Plugin ID (required)")
+	reshareCmd.Flags().StringP("local-password", "l", "", "Local password for vault encryption")
 
 	reshareCmd.MarkFlagRequired("email")
 	reshareCmd.MarkFlagRequired("password")
 	reshareCmd.MarkFlagRequired("plugin-id")
+
+	inspectCmd.Flags().StringP("local-password", "l", "", "Local password for vault encryption")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -206,6 +210,7 @@ func runList(cmd *cobra.Command, args []string) error {
 
 func runInspect(cmd *cobra.Command, args []string) error {
 	vaultInput := args[0]
+	localPassword, _ := cmd.Flags().GetString("local-password")
 
 	// Initialize storage for vault loading
 	localStorage, err := utils.InitializeStorage()
@@ -215,7 +220,7 @@ func runInspect(cmd *cobra.Command, args []string) error {
 
 	// Load and parse vault
 	vaultLoader := utils.NewVaultLoader(localStorage)
-	vault, vaultContainer, vaultPath, err := vaultLoader.LoadAndParseVault(vaultInput)
+	vault, vaultContainer, vaultPath, err := vaultLoader.LoadAndParseVault(vaultInput, localPassword)
 	if err != nil {
 		return err
 	}
@@ -335,6 +340,7 @@ func runReshare(cmd *cobra.Command, args []string) error {
 	email, _ := cmd.Flags().GetString("email")
 	password, _ := cmd.Flags().GetString("password")
 	pluginID, _ := cmd.Flags().GetString("plugin-id")
+	localPassword, _ := cmd.Flags().GetString("local-password")
 
 	// Initialize storage and load vault
 	localStorage, err := utils.InitializeStorage()
@@ -343,7 +349,7 @@ func runReshare(cmd *cobra.Command, args []string) error {
 	}
 
 	vaultLoader := utils.NewVaultLoader(localStorage)
-	vault, _, _, err := vaultLoader.LoadAndParseVault(vaultInput)
+	vault, _, _, err := vaultLoader.LoadAndParseVault(vaultInput, localPassword)
 	if err != nil {
 		return err
 	}

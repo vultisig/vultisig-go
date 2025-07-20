@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/aes"
+	"crypto/cipher"
+	"io"
 
 	vaultType "github.com/vultisig/commondata/go/vultisig/vault/v1"
 	"google.golang.org/protobuf/proto"
@@ -90,11 +95,6 @@ func ParseVault(vaultContainer *vaultType.VaultContainer) (*vaultType.Vault, err
 		return nil, fmt.Errorf("failed to decode vault data: %w", err)
 	}
 
-	// If encrypted, we would need to decrypt here
-	if vaultContainer.IsEncrypted {
-		return nil, fmt.Errorf("encrypted vaults are not supported yet - vault decryption requires password")
-	}
-
 	// Parse the vault
 	var vault vaultType.Vault
 	if err := proto.Unmarshal(vaultBytes, &vault); err != nil {
@@ -105,7 +105,7 @@ func ParseVault(vaultContainer *vaultType.VaultContainer) (*vaultType.Vault, err
 }
 
 // LoadAndParseVault is a convenience function that loads and parses a vault in one step
-func (vl *VaultLoader) LoadAndParseVault(vaultInput string) (*vaultType.Vault, *vaultType.VaultContainer, string, error) {
+func (vl *VaultLoader) LoadAndParseVault(vaultInput string, localPassword string) (*vaultType.Vault, *vaultType.VaultContainer, string, error) {
 	vaultData, vaultPath, err := vl.LoadVaultData(vaultInput)
 	if err != nil {
 		return nil, nil, "", err
@@ -116,10 +116,89 @@ func (vl *VaultLoader) LoadAndParseVault(vaultInput string) (*vaultType.Vault, *
 		return nil, nil, "", err
 	}
 
+	if localPassword != "" && vaultContainer.IsEncrypted {
+		vaultBytes, err := base64.StdEncoding.DecodeString(vaultContainer.Vault)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		vaultBytes, err = DecryptVault(localPassword, vaultBytes)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		vaultContainer.Vault = base64.StdEncoding.EncodeToString(vaultBytes)
+	} else if localPassword == "" && vaultContainer.IsEncrypted {
+		return nil, nil, "", fmt.Errorf("local password is required to decrypt vault")
+	}
+
 	vault, err := ParseVault(vaultContainer)
 	if err != nil {
 		return nil, nil, "", err
 	}
 
 	return vault, vaultContainer, vaultPath, nil
+}
+
+
+
+func EncryptVault(password string, vault []byte) ([]byte, error) {
+	// Hash the password to create a key
+	hash := sha256.Sum256([]byte(password))
+	key := hash[:]
+
+	// Create a new AES cipher using the key
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use GCM (Galois/Counter Mode)
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a nonce. Nonce size is specified by GCM
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	// Seal encrypts and authenticates plaintext
+	ciphertext := gcm.Seal(nonce, nonce, vault, nil)
+	return ciphertext, nil
+}
+
+func DecryptVault(password string, vault []byte) ([]byte, error) {
+	// Hash the password to create a key
+	hash := sha256.Sum256([]byte(password))
+	key := hash[:]
+
+	// Create a new AES cipher using the key
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use GCM (Galois/Counter Mode)
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the nonce size
+	nonceSize := gcm.NonceSize()
+	if len(vault) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	// Extract the nonce from the vault
+	nonce, ciphertext := vault[:nonceSize], vault[nonceSize:]
+
+	// Decrypt the vault
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return plaintext, nil
 }
