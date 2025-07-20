@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -10,7 +12,9 @@ import (
 	"github.com/spf13/cobra"
 	keygen "github.com/vultisig/commondata/go/vultisig/keygen/v1"
 	vaultType "github.com/vultisig/commondata/go/vultisig/vault/v1"
+	"google.golang.org/protobuf/proto"
 
+	"github.com/vultisig/vultisig-go/internal/storage"
 	"github.com/vultisig/vultisig-go/internal/utils"
 	"github.com/vultisig/vultisig-go/internal/vault"
 )
@@ -71,6 +75,17 @@ var reencryptCmd = &cobra.Command{
 	RunE:  runReencrypt,
 }
 
+var editCmd = &cobra.Command{
+	Use:   "edit [vault-label-or-path]",
+	Short: "Edit vault properties",
+	Long: `Edit vault properties including name, signers, and local party ID.
+You can provide either:
+- A vault label/filename (e.g., "MyVault-abcd1234.vult") to edit from the default vault directory
+- An absolute path to a vault file anywhere on disk`,
+	Args: cobra.ExactArgs(1),
+	RunE: runEdit,
+}
+
 func init() {
 	rootCmd.AddCommand(vaultCmd)
 	vaultCmd.AddCommand(createCmd)
@@ -78,6 +93,7 @@ func init() {
 	vaultCmd.AddCommand(inspectCmd)
 	vaultCmd.AddCommand(reshareCmd)
 	vaultCmd.AddCommand(reencryptCmd)
+	vaultCmd.AddCommand(editCmd)
 
 	// Add flags for vault creation
 	createCmd.Flags().StringP("name", "n", "", "Vault name (required)")
@@ -110,6 +126,8 @@ func init() {
 
 	reencryptCmd.Flags().StringP("password", "l", "", "Current password for vault encryption")
 	reencryptCmd.Flags().StringP("new-password", "n", "", "New password for vault encryption")
+
+	editCmd.Flags().StringP("password", "p", "", "Password for vault decryption")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -473,6 +491,212 @@ func performReshare(vault *vaultType.Vault, sessionID, encryptionKey, relayServe
 	fmt.Println("📝 Note: New vault files with updated keyshares will be saved by each party.")
 
 	return nil
+}
+
+func runEdit(cmd *cobra.Command, args []string) error {
+	vaultInput := args[0]
+	password, _ := cmd.Flags().GetString("password")
+
+	// Initialize storage for vault loading
+	localStorage, err := utils.InitializeStorage()
+	if err != nil {
+		return err
+	}
+
+	// Load and parse vault
+	vaultLoader := utils.NewVaultLoader(localStorage)
+	vault, vaultContainer, vaultPath, err := vaultLoader.LoadAndParseVault(vaultInput, password)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("🔧 Editing Vault: %s\n", vault.Name)
+	fmt.Printf("═══════════════════════════════════════════════════════════════\n\n")
+
+	// Create a copy of the vault for editing
+	vaultCopy := proto.Clone(vault).(*vaultType.Vault)
+	originalPassword := password
+	changed := false
+
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for {
+		fmt.Printf("Current vault properties:\n")
+		fmt.Printf("1. Vault name: %s\n", vaultCopy.Name)
+		fmt.Printf("2. Signers (%d): %v\n", len(vaultCopy.Signers), vaultCopy.Signers)
+		fmt.Printf("3. Local party ID: %s\n", vaultCopy.LocalPartyId)
+		fmt.Printf("\n")
+		fmt.Printf("Select property to edit (1-3), or 's' to save, 'q' to quit: ")
+
+		if !scanner.Scan() {
+			break
+		}
+		choice := strings.TrimSpace(scanner.Text())
+
+		switch choice {
+		case "1":
+			fmt.Printf("Enter new vault name (current: %s): ", vaultCopy.Name)
+			if scanner.Scan() {
+				newName := strings.TrimSpace(scanner.Text())
+				if newName != "" && newName != vaultCopy.Name {
+					vaultCopy.Name = newName
+					changed = true
+					fmt.Printf("✅ Vault name updated to: %s\n\n", newName)
+				}
+			}
+
+		case "2":
+			fmt.Printf("Current signers: %v\n", vaultCopy.Signers)
+			fmt.Printf("Enter new signers (comma-separated): ")
+			if scanner.Scan() {
+				signersInput := strings.TrimSpace(scanner.Text())
+				if signersInput != "" {
+					newSigners := strings.Split(signersInput, ",")
+					for i, signer := range newSigners {
+						newSigners[i] = strings.TrimSpace(signer)
+					}
+					if !equalStringSlices(vaultCopy.Signers, newSigners) {
+						vaultCopy.Signers = newSigners
+						changed = true
+						fmt.Printf("✅ Signers updated to: %v\n\n", newSigners)
+					}
+				}
+			}
+
+		case "3":
+			fmt.Printf("Enter new local party ID (current: %s): ", vaultCopy.LocalPartyId)
+			if scanner.Scan() {
+				newPartyID := strings.TrimSpace(scanner.Text())
+				if newPartyID != "" && newPartyID != vaultCopy.LocalPartyId {
+					vaultCopy.LocalPartyId = newPartyID
+					changed = true
+					fmt.Printf("✅ Local party ID updated to: %s\n\n", newPartyID)
+				}
+			}
+
+		case "s", "S":
+			if !changed {
+				fmt.Println("No changes made.")
+				return nil
+			}
+
+			// Save vault with password options
+			return saveEditedVault(vaultCopy, vaultContainer, vaultPath, originalPassword, localStorage, scanner)
+
+		case "q", "Q":
+			if changed {
+				fmt.Printf("You have unsaved changes. Are you sure you want to quit? (y/N): ")
+				if scanner.Scan() {
+					confirm := strings.TrimSpace(strings.ToLower(scanner.Text()))
+					if confirm != "y" && confirm != "yes" {
+						continue
+					}
+				}
+			}
+			fmt.Println("Edit cancelled.")
+			return nil
+
+		default:
+			fmt.Println("Invalid choice. Please select 1-3, 's' to save, or 'q' to quit.")
+		}
+	}
+
+	return nil
+}
+
+func saveEditedVault(vault *vaultType.Vault, vaultContainer *vaultType.VaultContainer, vaultPath, originalPassword string, localStorage *storage.LocalVaultStorage, scanner *bufio.Scanner) error {
+	fmt.Printf("\n💾 Saving vault...\n")
+	fmt.Printf("Password options:\n")
+	fmt.Printf("1. Keep current password\n")
+	fmt.Printf("2. Change password\n")
+	fmt.Printf("3. Remove password (save unencrypted)\n")
+	fmt.Printf("Select option (1-3): ")
+
+	if !scanner.Scan() {
+		return fmt.Errorf("failed to read password option")
+	}
+
+	option := strings.TrimSpace(scanner.Text())
+	var newPassword string
+	var encrypt bool
+
+	switch option {
+	case "1":
+		newPassword = originalPassword
+		encrypt = originalPassword != ""
+	case "2":
+		fmt.Printf("Enter new password: ")
+		if !scanner.Scan() {
+			return fmt.Errorf("failed to read new password")
+		}
+		newPassword = strings.TrimSpace(scanner.Text())
+		encrypt = newPassword != ""
+	case "3":
+		newPassword = ""
+		encrypt = false
+	default:
+		return fmt.Errorf("invalid option selected")
+	}
+
+	// Serialize the vault to protobuf
+	vaultBytes, err := proto.Marshal(vault)
+	if err != nil {
+		return fmt.Errorf("failed to marshal vault: %w", err)
+	}
+
+	// Encrypt if password provided (using existing encryption function)
+	var vaultData []byte
+	if encrypt {
+		vaultData, err = utils.EncryptVault(newPassword, vaultBytes)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt vault: %w", err)
+		}
+	} else {
+		vaultData = vaultBytes
+	}
+
+	// Create new container with proper metadata
+	newContainer := &vaultType.VaultContainer{
+		Version:     1, // Use version 1 as per existing pattern
+		Vault:       base64.StdEncoding.EncodeToString(vaultData),
+		IsEncrypted: encrypt,
+	}
+
+	// Serialize container to protobuf
+	containerBytes, err := proto.Marshal(newContainer)
+	if err != nil {
+		return fmt.Errorf("failed to marshal vault container: %w", err)
+	}
+
+	// Apply final base64 encoding (matches vultisig-windows format)
+	base64ContainerData := base64.StdEncoding.EncodeToString(containerBytes)
+
+	// Save to file with proper permissions
+	err = os.WriteFile(vaultPath, []byte(base64ContainerData), 0600)
+	if err != nil {
+		return fmt.Errorf("failed to write vault file: %w", err)
+	}
+
+	fmt.Printf("✅ Vault saved successfully to: %s\n", vaultPath)
+	if encrypt {
+		fmt.Println("🔒 Vault is encrypted with password")
+	} else {
+		fmt.Println("🔓 Vault is saved without encryption")
+	}
+
+	return nil
+}
+
+func equalStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func runReencrypt(cmd *cobra.Command, args []string) error {

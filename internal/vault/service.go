@@ -17,6 +17,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	keygen "github.com/vultisig/commondata/go/vultisig/keygen/v1"
@@ -49,11 +50,17 @@ type Service struct {
 
 // NewService creates a new vault service
 func NewService(relayServer, encryptionSecret string, storage *storage.LocalVaultStorage) *Service {
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+	logger.SetOutput(os.Stdout)
 	return &Service{
 		relayServer:        relayServer,
 		encryptionSecret:   encryptionSecret,
 		storage:            storage,
-		logger:             logrus.WithField("service", "vault").Logger,
+		logger:             logger.WithField("service", "vault").Logger,
 		localStateAccessor: NewLocalStateAccessor(),
 		isKeygenFinished:   &atomic.Bool{},
 	}
@@ -255,8 +262,19 @@ func (s *Service) runDKLSKeygen(sessionID, hexEncryptionKey, localPartyID string
 		return nil, fmt.Errorf("failed to encrypt setup message: %w", err)
 	}
 
+	s.logger.WithFields(logrus.Fields{
+		"session":  sessionID,
+		"key_type": keygenType,
+		"size":     len(setupMessage),
+	}).Info("Uploading setup message")
+
+	eddsaHeader := ""
+	if isEdDSA {
+		eddsaHeader = "eddsa"
+	}
+
 	relayClient := relay.NewRelayClient(s.relayServer)
-	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, "", ""); err != nil {
+	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, "", eddsaHeader); err != nil {
 		return nil, fmt.Errorf("failed to upload setup message: %w", err)
 	}
 
@@ -290,6 +308,8 @@ func (s *Service) runDKLSKeygen(sessionID, hexEncryptionKey, localPartyID string
 		"public_key": result.PublicKey,
 	}).Info("DKLS keygen completed successfully")
 
+	time.Sleep(5 * time.Second)
+
 	return result, nil
 }
 
@@ -321,12 +341,18 @@ func (s *Service) runKeygenProtocol(mpcWrapper MPCKeygenWrapper, handle Handle, 
 	select {
 	case result := <-resultChan:
 		s.isKeygenFinished.Store(true)
+		time.Sleep(1 * time.Second)
 		return result, nil
 	case err := <-errChan:
 		s.isKeygenFinished.Store(true)
+		time.Sleep(1 * time.Second)
 		return nil, err
-	case <-time.After(2 * time.Minute):
+	case <-time.After(3 * time.Minute):
+		s.logger.WithFields(logrus.Fields{
+			"session": sessionID,
+		}).Error("Keygen timeout, stopping keygen")
 		s.isKeygenFinished.Store(true)
+		time.Sleep(1 * time.Second)
 		return nil, fmt.Errorf("keygen timeout")
 	}
 }
@@ -338,18 +364,21 @@ func (s *Service) processKeygenOutbound(mpcWrapper MPCKeygenWrapper, handle Hand
 	for {
 		if s.isKeygenFinished.Load() {
 			s.logger.Info("Keygen finished, stopping outbound processing")
+			time.Sleep(5 * time.Second)
 			return nil
 		}
 
 		// Get output message using the MPC wrapper
 		outbound, err := mpcWrapper.KeygenSessionOutputMessage(handle)
 		if err != nil {
-			s.logger.WithError(err).Debug("Failed to get output message")
+			s.logger.WithError(err).WithFields(logrus.Fields{
+				"session": sessionID,
+				"handle":  handle,
+			}).Debug("Failed to get output message")
 			continue
 		}
 
 		if len(outbound) == 0 {
-			time.Sleep(1 * time.Second)
 			continue
 		}
 
@@ -380,11 +409,12 @@ func (s *Service) processKeygenOutbound(mpcWrapper MPCKeygenWrapper, handle Hand
 					"session": sessionID,
 					"to":      receiver,
 					"idx":     idx,
+					"len":     len(outbound),
 				}).Debug("Sent outbound message")
 			}
 		}
 
-		time.Sleep(1 * time.Second) // Small delay between sends
+		time.Sleep(100 * time.Millisecond) // Small delay between sends
 	}
 }
 
@@ -409,6 +439,13 @@ func (s *Service) processKeygenInbound(mpcWrapper MPCKeygenWrapper, handle Handl
 				continue
 			}
 
+			if len(messages) > 0 {
+				s.logger.WithFields(logrus.Fields{
+					"session":  sessionID,
+					"messages": len(messages),
+				}).Debug("Downloaded messages")
+			}
+
 			for _, message := range messages {
 				if message.From == localPartyID {
 					continue // Skip our own messages
@@ -430,6 +467,7 @@ func (s *Service) processKeygenInbound(mpcWrapper MPCKeygenWrapper, handle Handl
 					"from":         message.From,
 					"session":      sessionID,
 					"message_hash": message.Hash,
+					"len":          len(inboundBody),
 				}).Debug("Processing inbound message")
 
 				// Apply message to keygen session using MPC wrapper
@@ -441,6 +479,15 @@ func (s *Service) processKeygenInbound(mpcWrapper MPCKeygenWrapper, handle Handl
 
 				// Mark message as processed
 				messageCache.Store(cacheKey, true)
+
+				s.logger.WithFields(logrus.Fields{
+					"session":      sessionID,
+					"message_hash": message.Hash,
+					"len":          len(inboundBody),	
+					"is_finished":  isFinished,
+					"cache_key":    cacheKey,
+					"from":         message.From,
+				}).Debug("Processed inbound message")
 
 				// Delete message from server
 				if err := relayClient.DeleteMessageFromServer(sessionID, localPartyID, message.Hash, ""); err != nil {
@@ -489,6 +536,8 @@ func (s *Service) processKeygenInbound(mpcWrapper MPCKeygenWrapper, handle Handl
 					if err := s.localStateAccessor.SaveLocalState(result.PublicKey, result.Keyshare); err != nil {
 						s.logger.WithError(err).Error("Failed to save local state")
 					}
+
+					time.Sleep(2 * time.Second)
 
 					return result, nil
 				}
