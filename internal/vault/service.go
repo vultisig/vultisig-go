@@ -7,6 +7,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/aes"
+	"crypto/cipher"
 	"io"
 	"net/http"
 	"strings"
@@ -67,7 +71,7 @@ type CreateVaultRequest struct {
 }
 
 // CreateVault creates a new DKLS vault following the 2-of-2 fast vault flow
-func (s *Service) CreateVault(req CreateVaultRequest) (string, string, error) {
+func (s *Service) CreateVault(req CreateVaultRequest, localPassword string) (string, string, error) {
 	s.logger.WithFields(logrus.Fields{
 		"name":           req.Name,
 		"session":        req.SessionID,
@@ -126,6 +130,8 @@ func (s *Service) CreateVault(req CreateVaultRequest) (string, string, error) {
 		"chain_code": ecdsaResult.ChainCode,
 	}).Info("ECDSA keygen completed")
 
+	time.Sleep(1 * time.Second)
+
 	// Step 5: Run EdDSA keygen
 	eddsaResult, err := s.runDKLSKeygen(req.SessionID, req.HexEncryptionKey, req.LocalPartyId, partiesJoined, true)
 	if err != nil {
@@ -147,7 +153,7 @@ func (s *Service) CreateVault(req CreateVaultRequest) (string, string, error) {
 	}
 
 	// Step 6: Save vault
-	err = s.saveVaultResults(req.Name, req.LocalPartyId, partiesJoined, ecdsaResult, eddsaResult)
+	err = s.saveVaultResults(req.Name, req.LocalPartyId, partiesJoined, ecdsaResult, eddsaResult, localPassword)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to save vault: %w", err)
 	}
@@ -343,7 +349,7 @@ func (s *Service) processKeygenOutbound(mpcWrapper MPCKeygenWrapper, handle Hand
 		}
 
 		if len(outbound) == 0 {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 
@@ -378,7 +384,7 @@ func (s *Service) processKeygenOutbound(mpcWrapper MPCKeygenWrapper, handle Hand
 			}
 		}
 
-		time.Sleep(500 * time.Millisecond) // Small delay between sends
+		time.Sleep(1 * time.Second) // Small delay between sends
 	}
 }
 
@@ -493,7 +499,7 @@ func (s *Service) processKeygenInbound(mpcWrapper MPCKeygenWrapper, handle Handl
 
 // Removed old saveVault method - now using saveVaultResults
 
-func (s *Service) saveVaultToStorage(vault *vaultType.Vault) error {
+func (s *Service) saveVaultToStorage(vault *vaultType.Vault, localPassword string) error {
 	if len(s.encryptionSecret) == 0 {
 		return fmt.Errorf("encryption secret is empty")
 	}
@@ -505,11 +511,17 @@ func (s *Service) saveVaultToStorage(vault *vaultType.Vault) error {
 
 	// For simplicity, we'll store the vault without additional encryption in CLI mode
 	// In production, you might want to add client-side encryption
+	if localPassword != "" {
+		vaultData, err = EncryptVault(localPassword, vaultData)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt vault: %w", err)
+		}
+	}
 
 	vaultBackup := &vaultType.VaultContainer{
 		Version:     1,
 		Vault:       base64.StdEncoding.EncodeToString(vaultData),
-		IsEncrypted: false,
+		IsEncrypted: localPassword != "",
 	}
 
 	vaultBackupData, err := proto.Marshal(vaultBackup)
@@ -524,10 +536,8 @@ func (s *Service) saveVaultToStorage(vault *vaultType.Vault) error {
 	return s.storage.SaveVault(fileName, []byte(base64VaultData))
 }
 
-// Removed old generateAndSendSetupMessages method - now handled in runDKLSKeygen
-
 // saveVaultResults saves the keygen results to a vault file
-func (s *Service) saveVaultResults(vaultName, localPartyId string, partiesJoined []string, ecdsaResult, eddsaResult *KeygenResult) error {
+func (s *Service) saveVaultResults(vaultName, localPartyId string, partiesJoined []string, ecdsaResult, eddsaResult *KeygenResult, localPassword string) error {
 	vault := &vaultType.Vault{
 		Name:           vaultName,
 		PublicKeyEcdsa: ecdsaResult.PublicKey,
@@ -550,7 +560,7 @@ func (s *Service) saveVaultResults(vaultName, localPartyId string, partiesJoined
 		LibType:       keygen.LibType_LIB_TYPE_DKLS,
 	}
 
-	return s.saveVaultToStorage(vault)
+	return s.saveVaultToStorage(vault, localPassword)
 }
 
 // getKeygenThreshold calculates the threshold for the given number of signers
@@ -599,4 +609,32 @@ func decodeDecryptMessage(encodedMessage, hexEncryptionKey string) ([]byte, erro
 	}
 
 	return inboundBody, nil
+}
+
+func EncryptVault(password string, vault []byte) ([]byte, error) {
+	// Hash the password to create a key
+	hash := sha256.Sum256([]byte(password))
+	key := hash[:]
+
+	// Create a new AES cipher using the key
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use GCM (Galois/Counter Mode)
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a nonce. Nonce size is specified by GCM
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	// Seal encrypts and authenticates plaintext
+	ciphertext := gcm.Seal(nonce, nonce, vault, nil)
+	return ciphertext, nil
 }

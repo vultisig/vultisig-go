@@ -63,12 +63,21 @@ You can provide either:
 	RunE: runReshare,
 }
 
+var reencryptCmd = &cobra.Command{
+	Use:   "reencrypt [vault-label-or-path]",
+	Short: "Reencrypt a vault",
+	Long:  `Reencrypt a vault with a new encryption key. This is useful if you want to change the encryption key of a vault.`,
+	Args:  cobra.ExactArgs(1),
+	RunE:  runReencrypt,
+}
+
 func init() {
 	rootCmd.AddCommand(vaultCmd)
 	vaultCmd.AddCommand(createCmd)
 	vaultCmd.AddCommand(listCmd)
 	vaultCmd.AddCommand(inspectCmd)
 	vaultCmd.AddCommand(reshareCmd)
+	vaultCmd.AddCommand(reencryptCmd)
 
 	// Add flags for vault creation
 	createCmd.Flags().StringP("name", "n", "", "Vault name (required)")
@@ -98,6 +107,9 @@ func init() {
 	reshareCmd.MarkFlagRequired("plugin-id")
 
 	inspectCmd.Flags().StringP("local-password", "l", "", "Local password for vault encryption")
+
+	reencryptCmd.Flags().StringP("password", "l", "", "Current password for vault encryption")
+	reencryptCmd.Flags().StringP("new-password", "n", "", "New password for vault encryption")
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -107,6 +119,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	relayServer, _ := cmd.Flags().GetString("relay")
 	email, _ := cmd.Flags().GetString("email")
 	password, _ := cmd.Flags().GetString("password")
+	localPassword, _ := cmd.Flags().GetString("local-password")
 
 	// Generate chain code and encryption key
 	hexChainCode, err := utils.GenerateChainCode()
@@ -165,7 +178,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	fmt.Println("Waiting for other parties to join the session...")
 
 	// Create the vault
-	ecdsaKey, eddsaKey, err := vaultService.CreateVault(req)
+	ecdsaKey, eddsaKey, err := vaultService.CreateVault(req, localPassword)
 	if err != nil {
 		return fmt.Errorf("failed to create vault: %w", err)
 	}
@@ -459,5 +472,9 @@ func performReshare(vault *vaultType.Vault, sessionID, encryptionKey, relayServe
 	fmt.Println("📝 Note: Other parties (vultiserver, verifier, plugin) will now complete the reshare process.")
 	fmt.Println("📝 Note: New vault files with updated keyshares will be saved by each party.")
 
+	return nil
+}
+
+func runReencrypt(cmd *cobra.Command, args []string) error {
 	return nil
 }

@@ -7,7 +7,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/vultisig/commondata v0.0.0-20250430024109-a2492623ef05
-	github.com/vultisig/go-wrappers v0.0.0-20250403041248-86911e8aa33f
+	github.com/vultisig/go-wrappers v0.0.0-20250716071337-34a5c0f4d6e0
 	github.com/vultisig/vultiserver v0.0.0-20250601211546-7efbcde2a802
 	google.golang.org/protobuf v1.36.6
 )

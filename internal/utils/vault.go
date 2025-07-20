@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"io"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/aes"
 	"crypto/cipher"
-	"io"
 
 	vaultType "github.com/vultisig/commondata/go/vultisig/vault/v1"
 	"google.golang.org/protobuf/proto"
@@ -137,8 +137,6 @@ func (vl *VaultLoader) LoadAndParseVault(vaultInput string, localPassword string
 
 	return vault, vaultContainer, vaultPath, nil
 }
-
-
 
 func EncryptVault(password string, vault []byte) ([]byte, error) {
 	// Hash the password to create a key

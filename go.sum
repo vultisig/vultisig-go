@@ -192,8 +192,8 @@ github.com/ulikunitz/xz v0.5.12/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0o
 github.com/urfave/cli v1.22.5/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/vultisig/commondata v0.0.0-20250430024109-a2492623ef05 h1:yNZhAu3L1PrbWzVEmwZcSOdU8rGe8WbghsQxMuoO6KA=
 github.com/vultisig/commondata v0.0.0-20250430024109-a2492623ef05/go.mod h1:UMc5q0Myab+BvzAe67UQrXTXwKGYNxK7bky7DJM+dl8=
-github.com/vultisig/go-wrappers v0.0.0-20250403041248-86911e8aa33f h1:124Xlloih1FOOXv/HTdgl4syIRBa/xfKFXAecrZSPQE=
-github.com/vultisig/go-wrappers v0.0.0-20250403041248-86911e8aa33f/go.mod h1:UfGCxUQW08kiwxyNBiHwXe+ePPuBmHVVS+BS51aU/Jg=
+github.com/vultisig/go-wrappers v0.0.0-20250716071337-34a5c0f4d6e0 h1:EdgQHZjzkY2nAhxr99zgbcs+3/8U1t6XW7ETiBEAr80=
+github.com/vultisig/go-wrappers v0.0.0-20250716071337-34a5c0f4d6e0/go.mod h1:UfGCxUQW08kiwxyNBiHwXe+ePPuBmHVVS+BS51aU/Jg=
 github.com/vultisig/mobile-tss-lib v0.0.0-20250316003201-2e7e570a4a74 h1:goqwk4nQ/NEVIb3OPP9SUx7/u9ZfsUIcd5fIN/e4DVU=
 github.com/vultisig/mobile-tss-lib v0.0.0-20250316003201-2e7e570a4a74/go.mod h1:nOykk4nOy1L3yXtLSlYvVsgizBnCQ3tR2N5uwGPdvaM=
 github.com/vultisig/vultiserver v0.0.0-20250601211546-7efbcde2a802 h1:AtmdXx2Aa2c4P3IfQMgo7WYjJG9rFP6w4oS1732qACU=
