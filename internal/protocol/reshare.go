@@ -17,24 +17,11 @@ import (
 
 	"github.com/vultisig/vultisig-go/internal/crypto"
 	"github.com/vultisig/vultisig-go/internal/vault"
+	"github.com/vultisig/vultisig-go/types"
 )
 
-// ReshareRequest represents a complete reshare request
-type ReshareRequest struct {
-	Name               string   `json:"name"`
-	PublicKey          string   `json:"public_key"`
-	SessionID          string   `json:"session_id"`
-	HexEncryptionKey   string   `json:"hex_encryption_key"`
-	HexChainCode       string   `json:"hex_chain_code"`
-	LocalPartyId       string   `json:"local_party_id"`
-	OldParties         []string `json:"old_parties"`
-	EncryptionPassword string   `json:"encryption_password"`
-	Email              string   `json:"email"`
-	OldResharePrefix   string   `json:"old_reshare_prefix"`
-	LibType            int      `json:"lib_type"`
-	PluginID           string   `json:"plugin_id"`
-	ReshareType        int      `json:"reshare_type"`
-}
+// ReshareRequest is an alias to the root types.ReshareRequest for compatibility
+type ReshareRequest = types.ReshareRequest
 
 // SendReshareRequests sends reshare requests to all required servers
 func SendReshareRequests(req ReshareRequest, verifierServer string) error {
@@ -112,7 +99,7 @@ func CreateQcSetupAndReshare(v *vaultType.Vault, sessionID, encryptionKey, local
 		eddsaHeader = "eddsa"
 	}
 
-	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, "", eddsaHeader); err != nil {
+	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, eddsaHeader); err != nil {
 		return fmt.Errorf("failed to upload setup message: %w", err)
 	}
 

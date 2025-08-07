@@ -28,7 +28,7 @@ import (
 
 	"github.com/vultisig/vultisig-go/internal/crypto"
 	"github.com/vultisig/vultisig-go/internal/storage"
-	"github.com/vultisig/vultisig-go/internal/types"
+	"github.com/vultisig/vultisig-go/types"
 )
 
 // KeygenResult represents the result of a DKLS keygen operation
@@ -274,7 +274,7 @@ func (s *Service) runDKLSKeygen(sessionID, hexEncryptionKey, localPartyID string
 	}
 
 	relayClient := relay.NewRelayClient(s.relayServer)
-	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, "", eddsaHeader); err != nil {
+	if err := relayClient.UploadSetupMessage(sessionID, encryptedSetup, eddsaHeader); err != nil {
 		return nil, fmt.Errorf("failed to upload setup message: %w", err)
 	}
 
