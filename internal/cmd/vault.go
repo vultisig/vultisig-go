@@ -14,6 +14,7 @@ import (
 	vaultType "github.com/vultisig/commondata/go/vultisig/vault/v1"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/vultisig/vultisig-go/common"
 	"github.com/vultisig/vultisig-go/internal/storage"
 	"github.com/vultisig/vultisig-go/internal/utils"
 	"github.com/vultisig/vultisig-go/internal/vault"
@@ -647,7 +648,7 @@ func saveEditedVault(vault *vaultType.Vault, vaultContainer *vaultType.VaultCont
 	// Encrypt if password provided (using existing encryption function)
 	var vaultData []byte
 	if encrypt {
-		vaultData, err = utils.EncryptVault(newPassword, vaultBytes)
+		vaultData, err = common.EncryptVault(newPassword, vaultBytes)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt vault: %w", err)
 		}
