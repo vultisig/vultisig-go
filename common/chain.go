@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 type Chain int
@@ -76,6 +77,15 @@ var chainToString = map[Chain]string{
 	Tron:         "Tron",
 }
 
+func FromString(str string) (Chain, error) {
+	for key, value := range chainToString {
+		if strings.EqualFold(value, str) {
+			return key, nil
+		}
+	}
+	return Undefined, fmt.Errorf("unsupported chain: %s", str)
+}
+
 var chainDerivePath = map[Chain]string{
 	Bitcoin:      "m/84'/0'/0'/0/0",
 	Ethereum:     "m/44'/60'/0'/0/0",
@@ -109,6 +119,11 @@ var chainDerivePath = map[Chain]string{
 	Tron:         "m/44'/195'/0'/0/0",
 }
 
+func (c Chain) IsEvm() bool {
+	_, err := c.EvmID()
+	return err == nil
+}
+
 func (c Chain) EvmID() (*big.Int, error) {
 	switch c {
 	case Ethereum:
@@ -133,6 +148,73 @@ func (c Chain) EvmID() (*big.Int, error) {
 		return big.NewInt(324), nil
 	default:
 		return nil, fmt.Errorf("no EVM ID for this chain: %d", c)
+	}
+}
+
+func (c Chain) NativeSymbol() (string, error) {
+	switch c {
+	case THORChain:
+		return "RUNE", nil
+	case Solana:
+		return "SOL", nil
+	case Ethereum:
+		return "ETH", nil
+	case Avalanche:
+		return "AVAX", nil
+	case BscChain:
+		return "BNB", nil
+	case Bitcoin:
+		return "BTC", nil
+	case BitcoinCash:
+		return "BCH", nil
+	case Litecoin:
+		return "LTC", nil
+	case Dogecoin:
+		return "DOGE", nil
+	case GaiaChain:
+		return "ATOM", nil
+	case Kujira:
+		return "KUJI", nil
+	case Dash:
+		return "DASH", nil
+	case MayaChain:
+		return "CACAO", nil
+	case Arbitrum:
+		return "ETH", nil
+	case Base:
+		return "ETH", nil
+	case Optimism:
+		return "ETH", nil
+	case Polygon:
+		return "MATIC", nil
+	case Blast:
+		return "ETH", nil
+	case CronosChain:
+		return "CRO", nil
+	case Sui:
+		return "SUI", nil
+	case Polkadot:
+		return "DOT", nil
+	case Zksync:
+		return "ETH", nil
+	case Dydx:
+		return "DYDX", nil
+	case Ton:
+		return "TON", nil
+	case Terra:
+		return "LUNA", nil
+	case TerraClassic:
+		return "LUNC", nil
+	case XRP:
+		return "XRP", nil
+	case Osmosis:
+		return "OSMO", nil
+	case Noble:
+		return "USDC", nil
+	case Tron:
+		return "TRX", nil
+	default:
+		return "", fmt.Errorf("unsupported chain: %v", c)
 	}
 }
 
