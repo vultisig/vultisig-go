@@ -26,7 +26,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/vultisig/vultisig-go/internal/crypto"
+	"github.com/vultisig/vultisig-go/common"
 	"github.com/vultisig/vultisig-go/internal/storage"
 	"github.com/vultisig/vultisig-go/types"
 )
@@ -629,7 +629,7 @@ func encodeEncryptMessage(message []byte, hexEncryptionKey string) (string, erro
 	base64EncodedMessage := base64.StdEncoding.EncodeToString(message)
 
 	// Then encrypt using AES-GCM
-	encryptedMessage, err := crypto.EncryptGCM(base64EncodedMessage, hexEncryptionKey)
+	encryptedMessage, err := common.EncryptGCM(base64EncodedMessage, hexEncryptionKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt message: %w", err)
 	}
@@ -646,7 +646,7 @@ func decodeDecryptMessage(encodedMessage, hexEncryptionKey string) ([]byte, erro
 	}
 
 	// Decrypt using AES-GCM
-	decryptedMessage, err := crypto.DecryptGCM(encryptedMessage, hexEncryptionKey)
+	decryptedMessage, err := common.DecryptGCM(encryptedMessage, hexEncryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt message: %w", err)
 	}
