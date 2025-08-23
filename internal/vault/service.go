@@ -3,21 +3,21 @@ package vault
 import (
 	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"crypto/rand"
-	"crypto/sha256"
-	"crypto/aes"
-	"crypto/cipher"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"os"
 
 	"github.com/sirupsen/logrus"
 	keygen "github.com/vultisig/commondata/go/vultisig/keygen/v1"
@@ -257,7 +257,7 @@ func (s *Service) runDKLSKeygen(sessionID, hexEncryptionKey, localPartyID string
 	}
 
 	// Encrypt and upload setup message
-	encryptedSetup, err := encodeEncryptMessage(setupMessage, hexEncryptionKey)
+	encryptedSetup, err := common.EncodeEncryptMessage(setupMessage, hexEncryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt setup message: %w", err)
 	}
@@ -457,7 +457,7 @@ func (s *Service) processKeygenInbound(mpcWrapper MPCKeygenWrapper, handle Handl
 				}
 
 				// Decrypt the message
-				inboundBody, err := decodeDecryptMessage(message.Body, hexEncryptionKey)
+				inboundBody, err := common.DecodeDecryptMessage(message.Body, hexEncryptionKey)
 				if err != nil {
 					s.logger.WithError(err).Error("Failed to decrypt inbound message")
 					continue
@@ -483,7 +483,7 @@ func (s *Service) processKeygenInbound(mpcWrapper MPCKeygenWrapper, handle Handl
 				s.logger.WithFields(logrus.Fields{
 					"session":      sessionID,
 					"message_hash": message.Hash,
-					"len":          len(inboundBody),	
+					"len":          len(inboundBody),
 					"is_finished":  isFinished,
 					"cache_key":    cacheKey,
 					"from":         message.From,
@@ -621,43 +621,6 @@ func getKeygenThreshold(signers int) int {
 		return 2
 	}
 	return (signers*2 + 2) / 3 // Integer ceiling division
-}
-
-// encodeEncryptMessage encrypts and encodes a message using AES-GCM
-func encodeEncryptMessage(message []byte, hexEncryptionKey string) (string, error) {
-	// First base64 encode the message
-	base64EncodedMessage := base64.StdEncoding.EncodeToString(message)
-
-	// Then encrypt using AES-GCM
-	encryptedMessage, err := common.EncryptGCM(base64EncodedMessage, hexEncryptionKey)
-	if err != nil {
-		return "", fmt.Errorf("failed to encrypt message: %w", err)
-	}
-
-	return encryptedMessage, nil
-}
-
-// decodeDecryptMessage decodes and decrypts a message using AES-GCM
-func decodeDecryptMessage(encodedMessage, hexEncryptionKey string) ([]byte, error) {
-	// First decode from base64
-	encryptedMessage, err := base64.StdEncoding.DecodeString(encodedMessage)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64: %w", err)
-	}
-
-	// Decrypt using AES-GCM
-	decryptedMessage, err := common.DecryptGCM(encryptedMessage, hexEncryptionKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt message: %w", err)
-	}
-
-	// The decrypted message is a base64-encoded string, so decode it
-	inboundBody, err := base64.StdEncoding.DecodeString(string(decryptedMessage))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode inbound message: %w", err)
-	}
-
-	return inboundBody, nil
 }
 
 func EncryptVault(password string, vault []byte) ([]byte, error) {
