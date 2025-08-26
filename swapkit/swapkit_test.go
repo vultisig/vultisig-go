@@ -84,13 +84,14 @@ func TestQuote(t *testing.T) {
 		return
 	}
 
+	t.Logf("Quote ID: %s", resp.QuoteId)
 	t.Logf("Received %d routes", len(resp.Routes))
-	t.Logf("Expected buy amount: %s", resp.ExpectedBuyAmount)
+	t.Logf("Provider errors: %d", len(resp.ProviderErrors))
 
 	for i, route := range resp.Routes {
-		t.Logf("Route %d: %s -> %s (%s -> %s) via %s",
+		t.Logf("Route %d: %s -> %s (%s -> %s) via %v",
 			i, route.SellAsset, route.BuyAsset,
-			route.SellAmount, route.BuyAmount, route.Provider)
+			route.SellAmount, route.ExpectedBuyAmount, route.Providers)
 
 		if route.SellAsset == "" {
 			t.Logf("Route %d: sell asset is empty", i)
@@ -98,8 +99,8 @@ func TestQuote(t *testing.T) {
 		if route.BuyAsset == "" {
 			t.Logf("Route %d: buy asset is empty", i)
 		}
-		if route.Provider == "" {
-			t.Logf("Route %d: provider is empty", i)
+		if len(route.Providers) == 0 {
+			t.Logf("Route %d: providers empty", i)
 		}
 	}
 }
@@ -130,7 +131,7 @@ func TestPrice(t *testing.T) {
 		if price.Identifier == "" {
 			t.Error("Expected price to have identifier")
 		}
-		t.Logf("Price for %s: %f", price.Identifier, price.Price)
+		t.Logf("Price for %s: $%f USD (CoinGecko: %s)", price.Identifier, price.PriceUSD, price.CG.Name)
 	}
 }
 
@@ -141,10 +142,9 @@ func TestScreen(t *testing.T) {
 
 	req := ScreenRequest{
 		Addresses: []string{
-			"0x1234567890123456789012345678901234567890",
-			"bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+			"0xcB9B049B9c937acFDB87EeCfAa9e7f2c51E754f5",
 		},
-		Chains: []string{"1", "bitcoin"},
+		Chains: []string{"1"},
 	}
 
 	resp, err := client.Screen(ctx, req)

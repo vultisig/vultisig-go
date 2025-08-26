@@ -22,34 +22,34 @@ func NewClient(baseURL, apiKey string) *Client {
 type ProvidersRequest struct{}
 
 type Provider struct {
-	Name              string   `json:"name"`
-	Provider          string   `json:"provider"`
-	Keywords          []string `json:"keywords"`
-	Count             int      `json:"count"`
-	LogoURI           string   `json:"logoURI"`
-	SupportedChainIds []string `json:"supportedChainIds"`
+	Name              string   `json:"name,omitempty"`
+	Provider          string   `json:"provider,omitempty"`
+	Keywords          []string `json:"keywords,omitempty"`
+	Count             int      `json:"count,omitempty"`
+	LogoURI           string   `json:"logoURI,omitempty"`
+	SupportedChainIds []string `json:"supportedChainIds,omitempty"`
 }
 
 type ProvidersResponse []Provider
 
 type TokensRequest struct {
-	Provider string `json:"provider"`
+	Provider string `json:"provider,omitempty"`
 }
 
 type Token struct {
-	Chain       string `json:"chain"`
-	Ticker      string `json:"ticker"`
-	Identifier  string `json:"identifier"`
-	Decimals    int    `json:"decimals"`
-	LogoURI     string `json:"logoURI"`
+	Chain       string `json:"chain,omitempty"`
+	Ticker      string `json:"ticker,omitempty"`
+	Identifier  string `json:"identifier,omitempty"`
+	Decimals    int    `json:"decimals,omitempty"`
+	LogoURI     string `json:"logoURI,omitempty"`
 	CoinGeckoID string `json:"coinGeckoId,omitempty"`
 }
 
 type TokensResponse struct {
-	Provider  string  `json:"provider"`
-	Timestamp string  `json:"timestamp"`
-	Count     int     `json:"count"`
-	Tokens    []Token `json:"tokens"`
+	Provider  string  `json:"provider,omitempty"`
+	Timestamp string  `json:"timestamp,omitempty"`
+	Count     int     `json:"count,omitempty"`
+	Tokens    []Token `json:"tokens,omitempty"`
 }
 
 type QuoteRequest struct {
@@ -69,84 +69,130 @@ type QuoteRequest struct {
 	CfBoost                    bool     `json:"cfBoost,omitempty"`
 }
 
+type QuoteFee struct {
+	Type     string `json:"type,omitempty"`
+	Amount   string `json:"amount,omitempty"`
+	Asset    string `json:"asset,omitempty"`
+	Chain    string `json:"chain,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
+}
+
+type QuoteLeg struct {
+	Provider             string     `json:"provider,omitempty"`
+	SellAsset            string     `json:"sellAsset,omitempty"`
+	SellAmount           string     `json:"sellAmount,omitempty"`
+	BuyAsset             string     `json:"buyAsset,omitempty"`
+	BuyAmount            string     `json:"buyAmount,omitempty"`
+	BuyAmountMaxSlippage string     `json:"buyAmountMaxSlippage,omitempty"`
+	Fees                 []QuoteFee `json:"fees,omitempty"`
+}
+
+type QuoteEstimatedTime struct {
+	Inbound  float64 `json:"inbound,omitempty"`
+	Swap     float64 `json:"swap,omitempty"`
+	Outbound float64 `json:"outbound,omitempty"`
+	Total    float64 `json:"total,omitempty"`
+}
+
+type QuoteWarning struct {
+	Code    string `json:"code,omitempty"`
+	Display string `json:"display,omitempty"`
+	Tooltip string `json:"tooltip,omitempty"`
+}
+
 type QuoteRoute struct {
-	Provider           string      `json:"provider"`
-	SellAsset          string      `json:"sellAsset"`
-	SellAmount         string      `json:"sellAmount"`
-	BuyAsset           string      `json:"buyAsset"`
-	BuyAmount          string      `json:"buyAmount"`
-	SourceAddress      string      `json:"sourceAddress"`
-	DestinationAddress string      `json:"destinationAddress"`
-	Fees               interface{} `json:"fees"`
-	Time               interface{} `json:"time"`
-	CallData           string      `json:"calldata"`
-	Contract           string      `json:"contract"`
+	SellAsset                    string             `json:"sellAsset,omitempty"`
+	SellAmount                   string             `json:"sellAmount,omitempty"`
+	BuyAsset                     string             `json:"buyAsset,omitempty"`
+	ExpectedBuyAmount            string             `json:"expectedBuyAmount,omitempty"`
+	ExpectedBuyAmountMaxSlippage string             `json:"expectedBuyAmountMaxSlippage,omitempty"`
+	Fees                         []QuoteFee         `json:"fees,omitempty"`
+	Providers                    []string           `json:"providers,omitempty"`
+	SourceAddress                string             `json:"sourceAddress,omitempty"`
+	DestinationAddress           string             `json:"destinationAddress,omitempty"`
+	ApprovalAddress              string             `json:"approvalAddress,omitempty"`
+	Expiration                   string             `json:"expiration,omitempty"`
+	EstimatedTime                QuoteEstimatedTime `json:"estimatedTime,omitempty"`
+	TotalSlippageBps             int                `json:"totalSlippageBps,omitempty"`
+	Legs                         []QuoteLeg         `json:"legs,omitempty"`
+	Warnings                     []QuoteWarning     `json:"warnings,omitempty"`
+
+	// if includeTx=true
+	Tx             string         `json:"tx,omitempty"`
+	TargetAddress  string         `json:"targetAddress,omitempty"`
+	InboundAddress string         `json:"inboundAddress,omitempty"`
+	Memo           string         `json:"memo,omitempty"`
+	Meta           map[string]any `json:"meta,omitempty"`
+}
+
+type QuoteProviderError struct {
+	ErrorCode string `json:"errorCode,omitempty"`
+	Provider  string `json:"provider,omitempty"`
+	Message   string `json:"message,omitempty"`
 }
 
 type QuoteResponse struct {
-	Routes            []QuoteRoute `json:"routes"`
-	Providers         []string     `json:"providers"`
-	SellAsset         string       `json:"sellAsset"`
-	BuyAsset          string       `json:"buyAsset"`
-	ExpectedBuyAmount string       `json:"expectedBuyAmount"`
-	Fees              interface{}  `json:"fees"`
-	EstimatedTime     interface{}  `json:"estimatedTime"`
-	Meta              interface{}  `json:"meta"`
-	Warnings          []string     `json:"warnings"`
-	ProviderErrors    interface{}  `json:"providerErrors"`
+	QuoteId        string               `json:"quoteId,omitempty"`
+	Routes         []QuoteRoute         `json:"routes,omitempty"`
+	ProviderErrors []QuoteProviderError `json:"providerErrors,omitempty"`
 }
 
 type TrackRequest struct {
-	Hash    string `json:"hash"`
-	ChainId string `json:"chainId"`
-	Block   int    `json:"block"`
+	Hash    string `json:"hash,omitempty"`
+	ChainId string `json:"chainId,omitempty"`
+	Block   int    `json:"block,omitempty"`
 }
 
 type TrackLeg struct {
-	Status string `json:"status"`
-	Hash   string `json:"hash"`
+	Status string `json:"status,omitempty"`
+	Hash   string `json:"hash,omitempty"`
 }
 
 type TrackResponse struct {
-	Status    string     `json:"status"`
-	Hash      string     `json:"hash"`
-	ChainId   string     `json:"chainId"`
-	FromAsset string     `json:"fromAsset"`
-	ToAsset   string     `json:"toAsset"`
-	Amount    string     `json:"amount"`
-	Legs      []TrackLeg `json:"legs"`
+	Status    string     `json:"status,omitempty"`
+	Hash      string     `json:"hash,omitempty"`
+	ChainId   string     `json:"chainId,omitempty"`
+	FromAsset string     `json:"fromAsset,omitempty"`
+	ToAsset   string     `json:"toAsset,omitempty"`
+	Amount    string     `json:"amount,omitempty"`
+	Legs      []TrackLeg `json:"legs,omitempty"`
 }
 
 type PriceRequest struct {
-	Tokens   []TokenIdentifier `json:"tokens"`
-	Metadata bool              `json:"metadata"`
+	Tokens   []TokenIdentifier `json:"tokens,omitempty"`
+	Metadata bool              `json:"metadata,omitempty"`
 }
 
 type TokenIdentifier struct {
-	Identifier string `json:"identifier"`
+	Identifier string `json:"identifier,omitempty"`
 }
 
-type PriceMetadata struct {
-	MarketCap       float64 `json:"market_cap,omitempty"`
-	Volume24h       float64 `json:"total_volume,omitempty"`
-	PriceChange24h  float64 `json:"price_change_24h,omitempty"`
-	PriceChangePerc float64 `json:"price_change_percentage_24h,omitempty"`
+type PriceCoinGeckoData struct {
+	ID                          string    `json:"id,omitempty"`
+	Name                        string    `json:"name,omitempty"`
+	MarketCap                   float64   `json:"market_cap,omitempty"`
+	TotalVolume                 float64   `json:"total_volume,omitempty"`
+	PriceChange24hUSD           float64   `json:"price_change_24h_usd,omitempty"`
+	PriceChangePercentage24hUSD float64   `json:"price_change_percentage_24h_usd,omitempty"`
+	SparklineIn7d               []float64 `json:"sparkline_in_7d,omitempty"`
+	Timestamp                   string    `json:"timestamp,omitempty"`
 }
 
 type PriceResponse []struct {
-	Identifier string        `json:"identifier"`
-	Price      float64       `json:"price"`
-	Timestamp  int64         `json:"timestamp"`
-	Metadata   PriceMetadata `json:"metadata,omitempty"`
+	Identifier string             `json:"identifier,omitempty"`
+	Provider   string             `json:"provider,omitempty"`
+	CG         PriceCoinGeckoData `json:"cg,omitempty"`
+	PriceUSD   float64            `json:"price_usd,omitempty"`
+	Timestamp  int64              `json:"timestamp,omitempty"`
 }
 
 type ScreenRequest struct {
-	Addresses interface{} `json:"addresses"`
-	Chains    []string    `json:"chains"`
+	Addresses []string `json:"addresses,omitempty"`
+	Chains    []string `json:"chains,omitempty"`
 }
 
 type ScreenResponse struct {
-	IsRisky bool `json:"isRisky"`
+	IsRisky bool `json:"isRisky,omitempty"`
 }
 
 func (c *Client) getHeaders() map[string]string {
@@ -171,6 +217,7 @@ func (c *Client) Providers(ctx context.Context) (ProvidersResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get providers: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -191,6 +238,7 @@ func (c *Client) Tokens(ctx context.Context, req TokensRequest) (TokensResponse,
 	if err != nil {
 		return TokensResponse{}, fmt.Errorf("failed to get tokens: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -206,6 +254,7 @@ func (c *Client) Quote(ctx context.Context, req QuoteRequest) (QuoteResponse, er
 	if err != nil {
 		return QuoteResponse{}, fmt.Errorf("failed to get quote: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -236,6 +285,7 @@ func (c *Client) Price(ctx context.Context, req PriceRequest) (PriceResponse, er
 	if err != nil {
 		return PriceResponse{}, fmt.Errorf("failed to get price: %w", err)
 	}
+
 	return result, nil
 }
 
