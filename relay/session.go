@@ -197,12 +197,12 @@ func (c *Client) CheckCompletedParties(sessionID string, partiesJoined []string)
 			return false, fmt.Errorf("fail to check completed parties: %w", err)
 		}
 
-		req.Header.Set("Content-Type", "application/json")
 		resp, err := c.client.Do(req)
 		if err != nil {
 			return false, fmt.Errorf("fail to check completed parties: %w", err)
 		}
 		if resp.StatusCode != http.StatusOK {
+			c.bodyCloser(resp.Body)
 			return false, fmt.Errorf("fail to check completed parties: %s", resp.Status)
 		}
 
@@ -265,7 +265,6 @@ func (c *Client) CheckKeysignComplete(sessionID string, messageID string) (*tss.
 	if err != nil {
 		return nil, fmt.Errorf("fail to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("message_id", messageID)
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -315,6 +314,7 @@ func (c *Client) UploadSetupMessage(sessionID string, messageID, payload string)
 	if err != nil {
 		return fmt.Errorf("fail to upload setup message: %w", err)
 	}
+	defer c.bodyCloser(resp.Body)
 	if resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("fail to upload setup message: %s", resp.Status)
 	}
@@ -352,6 +352,7 @@ func (c *Client) GetSetupMessage(sessionID, messageID string) (string, error) {
 		return "", fmt.Errorf("fail to get setup message: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
+		c.bodyCloser(resp.Body)
 		return "", fmt.Errorf("fail to get setup message: %s", resp.Status)
 	}
 	defer func() {
@@ -379,6 +380,7 @@ func (c *Client) DeleteMessageFromServer(sessionID, localPartyID, hash, messageI
 	if err != nil {
 		return fmt.Errorf("fail to delete message: %w", err)
 	}
+	defer c.bodyCloser(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("fail to delete message: status %s", resp.Status)
 	}
@@ -398,6 +400,7 @@ func (c *Client) DownloadMessages(sessionID string, localPartyID string, message
 		c.logger.Error("fail to get data from server", "error", err)
 		return nil, err
 	}
+	defer c.bodyCloser(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		c.logger.Debug("fail to get data from server", "status", resp.Status)
 		return nil, fmt.Errorf("fail to get data from server: %s", resp.Status)
