@@ -57,12 +57,18 @@ func Call[T any](
 	if err != nil {
 		return *new(T), fmt.Errorf("failed to read response body: %w", err)
 	}
-	if res.StatusCode != http.StatusOK {
+	// Treat any 2xx as success
+	if res.StatusCode < http.StatusOK || res.StatusCode >= 300 {
 		return *new(T), fmt.Errorf(
 			"failed to get successful response: status_code: %d, res_body: %s",
 			res.StatusCode,
 			string(bodyBytes),
 		)
+	}
+	// Handle responses with no content gracefully
+	if len(bodyBytes) == 0 {
+		var zero T
+		return zero, nil
 	}
 
 	// when no-JSON response is expected
