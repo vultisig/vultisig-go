@@ -112,6 +112,7 @@ func (c *Client) WaitForSessionStart(ctx context.Context, sessionID string) ([]s
 				return nil, fmt.Errorf("fail to get session: %w", err)
 			}
 			if resp.StatusCode != http.StatusOK {
+				c.bodyCloser(resp.Body)
 				return nil, fmt.Errorf("fail to get session: %s", resp.Status)
 			}
 			var parties []string
