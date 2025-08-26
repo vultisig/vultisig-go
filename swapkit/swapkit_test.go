@@ -37,7 +37,7 @@ func TestTokens(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	resp, err := client.Tokens(ctx, TokensRequest{Provider: "CHAINFLIP"})
+	resp, err := client.Tokens(ctx, TokensRequest{Provider: "THORCHAIN"})
 	if err != nil {
 		t.Fatalf("Tokens failed: %v", err)
 	}
@@ -73,7 +73,35 @@ func TestQuote(t *testing.T) {
 		DestinationAddress: "0xcB9B049B9c937acFDB87EeCfAa9e7f2c51E754f5",
 	}
 
-	_, _ = client.Quote(ctx, req)
+	resp, err := client.Quote(ctx, req)
+	if err != nil {
+		t.Logf("Quote request failed (may be expected): %v", err)
+		return
+	}
+
+	if len(resp.Routes) == 0 {
+		t.Log("No routes returned")
+		return
+	}
+
+	t.Logf("Received %d routes", len(resp.Routes))
+	t.Logf("Expected buy amount: %s", resp.ExpectedBuyAmount)
+
+	for i, route := range resp.Routes {
+		t.Logf("Route %d: %s -> %s (%s -> %s) via %s",
+			i, route.SellAsset, route.BuyAsset,
+			route.SellAmount, route.BuyAmount, route.Provider)
+
+		if route.SellAsset == "" {
+			t.Logf("Route %d: sell asset is empty", i)
+		}
+		if route.BuyAsset == "" {
+			t.Logf("Route %d: buy asset is empty", i)
+		}
+		if route.Provider == "" {
+			t.Logf("Route %d: provider is empty", i)
+		}
+	}
 }
 
 func TestPrice(t *testing.T) {

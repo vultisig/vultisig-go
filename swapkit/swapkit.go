@@ -69,21 +69,32 @@ type QuoteRequest struct {
 	CfBoost                    bool     `json:"cfBoost,omitempty"`
 }
 
-type Quote struct {
-	Provider           string `json:"provider"`
-	SellAsset          string `json:"sellAsset"`
-	SellAmount         string `json:"sellAmount"`
-	BuyAsset           string `json:"buyAsset"`
-	BuyAmount          string `json:"buyAmount"`
-	SourceAddress      string `json:"sourceAddress"`
-	DestinationAddress string `json:"destinationAddress"`
-	Fees               string `json:"fees"`
-	Time               int    `json:"time"`
-	CallData           string `json:"calldata"`
-	Contract           string `json:"contract"`
+type QuoteRoute struct {
+	Provider           string      `json:"provider"`
+	SellAsset          string      `json:"sellAsset"`
+	SellAmount         string      `json:"sellAmount"`
+	BuyAsset           string      `json:"buyAsset"`
+	BuyAmount          string      `json:"buyAmount"`
+	SourceAddress      string      `json:"sourceAddress"`
+	DestinationAddress string      `json:"destinationAddress"`
+	Fees               interface{} `json:"fees"`
+	Time               interface{} `json:"time"`
+	CallData           string      `json:"calldata"`
+	Contract           string      `json:"contract"`
 }
 
-type QuoteResponse []Quote
+type QuoteResponse struct {
+	Routes            []QuoteRoute `json:"routes"`
+	Providers         []string     `json:"providers"`
+	SellAsset         string       `json:"sellAsset"`
+	BuyAsset          string       `json:"buyAsset"`
+	ExpectedBuyAmount string       `json:"expectedBuyAmount"`
+	Fees              interface{}  `json:"fees"`
+	EstimatedTime     interface{}  `json:"estimatedTime"`
+	Meta              interface{}  `json:"meta"`
+	Warnings          []string     `json:"warnings"`
+	ProviderErrors    interface{}  `json:"providerErrors"`
+}
 
 type TrackRequest struct {
 	Hash    string `json:"hash"`
@@ -193,7 +204,7 @@ func (c *Client) Quote(ctx context.Context, req QuoteRequest) (QuoteResponse, er
 		nil,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get quote: %w", err)
+		return QuoteResponse{}, fmt.Errorf("failed to get quote: %w", err)
 	}
 	return result, nil
 }
