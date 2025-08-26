@@ -65,12 +65,13 @@ func Call[T any](
 		)
 	}
 
-	// when no-JSON response expected
-	switch any(new(T)).(type) {
+	// when no-JSON response is expected
+	var zero T
+	switch any(zero).(type) {
 	case string:
-		return any(bodyBytes).(T), nil
+		return any(string(bodyBytes)).(T), nil
 	case nil:
-		return *new(T), nil
+		return zero, nil
 	}
 
 	var r T
