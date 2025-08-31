@@ -576,13 +576,8 @@ func runEdit(cmd *cobra.Command, args []string) error {
 			}
 
 		case "s", "S":
-			if !changed {
-				fmt.Println("No changes made.")
-				return nil
-			}
-
-			// Save vault with password options
-			return saveEditedVault(vaultCopy, vaultContainer, vaultPath, originalPassword, localStorage, scanner)
+			// Save vault with password options (even if no content changes were made)
+			return saveEditedVault(vaultCopy, vaultContainer, vaultPath, originalPassword, localStorage, scanner, changed)
 
 		case "q", "Q":
 			if changed {
@@ -605,7 +600,7 @@ func runEdit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func saveEditedVault(vault *vaultType.Vault, vaultContainer *vaultType.VaultContainer, vaultPath, originalPassword string, localStorage *storage.LocalVaultStorage, scanner *bufio.Scanner) error {
+func saveEditedVault(vault *vaultType.Vault, vaultContainer *vaultType.VaultContainer, vaultPath, originalPassword string, localStorage *storage.LocalVaultStorage, scanner *bufio.Scanner, contentChanged bool) error {
 	fmt.Printf("\n💾 Saving vault...\n")
 	fmt.Printf("Password options:\n")
 	fmt.Printf("1. Keep current password\n")
@@ -625,6 +620,10 @@ func saveEditedVault(vault *vaultType.Vault, vaultContainer *vaultType.VaultCont
 	case "1":
 		newPassword = originalPassword
 		encrypt = originalPassword != ""
+		if !contentChanged && encrypt == vaultContainer.IsEncrypted {
+			fmt.Println("No changes made to vault or password.")
+			return nil
+		}
 	case "2":
 		fmt.Printf("Enter new password: ")
 		if !scanner.Scan() {
@@ -679,6 +678,9 @@ func saveEditedVault(vault *vaultType.Vault, vaultContainer *vaultType.VaultCont
 	}
 
 	fmt.Printf("✅ Vault saved successfully to: %s\n", vaultPath)
+	if contentChanged {
+		fmt.Println("📝 Vault content updated")
+	}
 	if encrypt {
 		fmt.Println("🔒 Vault is encrypted with password")
 	} else {
