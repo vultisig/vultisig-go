@@ -42,6 +42,7 @@ const (
 	Osmosis
 	Noble
 	Tron
+	Mantle
 )
 
 var chainToString = map[Chain]string{
@@ -75,6 +76,7 @@ var chainToString = map[Chain]string{
 	Osmosis:      "Osmosis",
 	Noble:        "Noble",
 	Tron:         "Tron",
+	Mantle:       "Mantle",
 }
 
 func FromString(str string) (Chain, error) {
@@ -117,6 +119,7 @@ var chainDerivePath = map[Chain]string{
 	Osmosis:      "m/44'/118'/0'/0/0",
 	Noble:        "m/44'/118'/0'/0/0",
 	Tron:         "m/44'/195'/0'/0/0",
+	Mantle:       "m/44'/60'/0'/0/0",
 }
 
 func (c Chain) IsEvm() bool {
@@ -146,6 +149,8 @@ func (c Chain) EvmID() (*big.Int, error) {
 		return big.NewInt(137), nil
 	case Zksync:
 		return big.NewInt(324), nil
+	case Mantle:
+		return big.NewInt(5000), nil
 	default:
 		return nil, fmt.Errorf("no EVM ID for this chain: %d", c)
 	}
@@ -213,6 +218,8 @@ func (c Chain) NativeSymbol() (string, error) {
 		return "USDC", nil
 	case Tron:
 		return "TRX", nil
+	case Mantle:
+		return "MNT", nil
 	default:
 		return "", fmt.Errorf("unsupported chain: %v", c)
 	}
