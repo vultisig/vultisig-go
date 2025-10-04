@@ -72,7 +72,7 @@ var chainToString = map[Chain]string{
 	Ton:          "TON",
 	Terra:        "Terra",
 	TerraClassic: "TerraClassic",
-	XRP:          "XRP",
+	XRP:          "Ripple",
 	Osmosis:      "Osmosis",
 	Noble:        "Noble",
 	Tron:         "Tron",
