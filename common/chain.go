@@ -111,7 +111,7 @@ var chainDerivePath = map[Chain]string{
 	Optimism:     "m/44'/60'/0'/0/0",
 	Polygon:      "m/44'/60'/0'/0/0",
 	Zksync:       "m/44'/60'/0'/0/0",
-	Solana:       "",
+	Solana:       "m/44'/501'/0'/0'",
 	Sui:          "",
 	Polkadot:     "",
 	Ton:          "",
