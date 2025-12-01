@@ -66,6 +66,9 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 	case common.Solana:
 		address, err = GetSolAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
+	case common.Zcash:
+		address, err = GetZcashAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
 	default:
 		return "", "", false, fmt.Errorf("unsupported chain: %s", chain)
 	}

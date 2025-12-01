@@ -39,6 +39,13 @@ func TestGetAddress(t *testing.T) {
 			inputKey: testEdDSAPublicKey,
 			isEdDSA:  true,
 		},
+		{
+			name:     "Zcash",
+			chain:    common.Zcash,
+			want:     "t1UJkDvXWkyZjkkRScLxzFJCxcBgq63NZED",
+			inputKey: testECDSAPublicKey,
+			isEdDSA:  false,
+		},
 	}
 
 	failureTests := []struct {
