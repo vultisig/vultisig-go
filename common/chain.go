@@ -43,6 +43,7 @@ const (
 	Noble
 	Tron
 	Mantle
+	Zcash
 )
 
 var chainToString = map[Chain]string{
@@ -77,6 +78,7 @@ var chainToString = map[Chain]string{
 	Noble:        "Noble",
 	Tron:         "Tron",
 	Mantle:       "Mantle",
+	Zcash:        "Zcash",
 }
 
 func FromString(str string) (Chain, error) {
@@ -120,6 +122,7 @@ var chainDerivePath = map[Chain]string{
 	Noble:        "m/44'/118'/0'/0/0",
 	Tron:         "m/44'/195'/0'/0/0",
 	Mantle:       "m/44'/60'/0'/0/0",
+	Zcash:        "m/44'/133'/0'/0/0",
 }
 
 func (c Chain) IsEvm() bool {
@@ -220,6 +223,8 @@ func (c Chain) NativeSymbol() (string, error) {
 		return "TRX", nil
 	case Mantle:
 		return "MNT", nil
+	case Zcash:
+		return "ZEC", nil
 	default:
 		return "", fmt.Errorf("unsupported chain: %v", c)
 	}
