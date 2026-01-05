@@ -33,6 +33,9 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 	case common.Litecoin:
 		address, err = GetLitecoinAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
+	case common.Dogecoin:
+		address, err = GetDogecoinAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
 	case common.GaiaChain:
 		address, err = GetBech32Address(publicKey, `cosmos`)
 		return address, publicKey, chain.IsEdDSA(), err
