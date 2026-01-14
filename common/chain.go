@@ -53,7 +53,7 @@ var chainToString = map[Chain]string{
 	Avalanche:    "Avalanche",
 	BscChain:     "BSC",
 	Bitcoin:      "Bitcoin",
-	BitcoinCash:  "BitcoinCash",
+	BitcoinCash:  "Bitcoin-Cash",
 	Litecoin:     "Litecoin",
 	Dogecoin:     "Dogecoin",
 	GaiaChain:    "Cosmos",
