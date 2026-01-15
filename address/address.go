@@ -72,6 +72,9 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 	case common.Zcash:
 		address, err = GetZcashAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
+	case common.Dash:
+		address, err = GetDashAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
 	case common.Tron:
 		address, err = GetTronAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
