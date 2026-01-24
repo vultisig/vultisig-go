@@ -78,6 +78,9 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 	case common.Tron:
 		address, err = GetTronAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
+	case common.XRP:
+		address, err = GetXRPAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
 	default:
 		return "", "", false, fmt.Errorf("unsupported chain: %s", chain)
 	}
