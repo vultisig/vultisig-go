@@ -87,6 +87,9 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 	case common.Bittensor:
 		address, err = GetBittensorAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
+	case common.Cardano:
+		address, err = GetCardanoAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
 	case common.Ton:
 		address, err = GetTonAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err

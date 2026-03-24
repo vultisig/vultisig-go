@@ -1,0 +1,34 @@
+package address
+
+import (
+	"encoding/hex"
+	"fmt"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"golang.org/x/crypto/blake2b"
+)
+
+func GetCardanoAddress(hexPublicKey string) (string, error) {
+	pubKeyBytes, err := hex.DecodeString(hexPublicKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid EdDSA public key: %w", err)
+	}
+	if len(pubKeyBytes) != 32 {
+		return "", fmt.Errorf("invalid public key length: expected 32 bytes, got %d", len(pubKeyBytes))
+	}
+
+	// Blake2b-224 hash of the spending key
+	hasher, err := blake2b.New(28, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create blake2b hasher: %w", err)
+	}
+	hasher.Write(pubKeyBytes)
+	keyHash := hasher.Sum(nil)
+
+	// Prepend header byte 0x61 (enterprise address on mainnet)
+	addressData := make([]byte, 29)
+	addressData[0] = 0x61
+	copy(addressData[1:], keyHash)
+
+	return sdk.Bech32ifyAddressBytes("addr", addressData)
+}
