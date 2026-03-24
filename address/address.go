@@ -60,6 +60,9 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 	case common.Noble:
 		address, err = GetBech32Address(publicKey, `noble`)
 		return address, publicKey, chain.IsEdDSA(), err
+	case common.Akash:
+		address, err = GetBech32Address(publicKey, `akash`)
+		return address, publicKey, chain.IsEdDSA(), err
 	case common.Arbitrum, common.Base, common.BscChain, common.Ethereum, common.Polygon, common.Blast, common.Avalanche, common.Optimism, common.CronosChain, common.Zksync, common.Mantle:
 		address, err = GetEVMAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err

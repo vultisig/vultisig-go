@@ -46,6 +46,7 @@ const (
 	Zcash
 	Bittensor
 	Cardano
+	Akash
 )
 
 var chainToString = map[Chain]string{
@@ -83,6 +84,7 @@ var chainToString = map[Chain]string{
 	Zcash:        "Zcash",
 	Bittensor:    "Bittensor",
 	Cardano:      "Cardano",
+	Akash:        "Akash",
 }
 
 func FromString(str string) (Chain, error) {
@@ -129,6 +131,7 @@ var chainDerivePath = map[Chain]string{
 	Zcash:        "m/44'/133'/0'/0/0",
 	Bittensor:    "",
 	Cardano:      "",
+	Akash:        "m/44'/118'/0'/0/0",
 }
 
 func (c Chain) IsEvm() bool {
@@ -235,6 +238,8 @@ func (c Chain) NativeSymbol() (string, error) {
 		return "TAO", nil
 	case Cardano:
 		return "ADA", nil
+	case Akash:
+		return "AKT", nil
 	default:
 		return "", fmt.Errorf("unsupported chain: %v", c)
 	}
