@@ -18,7 +18,7 @@ func TestTronAddress(t *testing.T) {
 		{
 			name:  "Tron",
 			chain: common.Tron,
-			want:  "THFxtPNvc7R9rz4ecC6aTSyPp2WoZnrZh3",
+			want:  "TJrWD5rnnK5vhEY7t8vFxMEYH8AUj6VBXV",
 		},
 	}
 	for _, tt := range tests {

@@ -55,7 +55,7 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 		address, err = GetBech32Address(publicKey, `terra`)
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.Osmosis:
-		address, err = GetBech32Address(publicKey, `osmosis`)
+		address, err = GetBech32Address(publicKey, `osmo`)
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.Noble:
 		address, err = GetBech32Address(publicKey, `noble`)
@@ -80,6 +80,12 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.XRP:
 		address, err = GetXRPAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
+	case common.Polkadot:
+		address, err = GetDotAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
+	case common.Ton:
+		address, err = GetTonAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
 	default:
 		return "", "", false, fmt.Errorf("unsupported chain: %s", chain)

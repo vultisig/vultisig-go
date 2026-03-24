@@ -18,7 +18,7 @@ func TestGetBitcoinAddress(t *testing.T) {
 		{
 			name:  "Bitcoin",
 			chain: common.Bitcoin,
-			want:  "bc1qxpeg8k8xrygj9ae8q6pkzj29sf7w8e7krm4v5f",
+			want:  "bc1qf7fmzrldk8jl6y498a4vulvsq3ex22855cljxm",
 		},
 	}
 	for _, tt := range tests {

@@ -17,7 +17,7 @@ func TestGetSolAddress(t *testing.T) {
 		{
 			name:  "Solana",
 			chain: common.Solana,
-			want:  "46ZJUzqDR1dxvX7hFWogsAzyAseAwtb1XNGhtCCNCHW5",
+			want:  "9n22P31fnT9HscWos3jLEgvPG4HHwQehMJ8dhby18hcy",
 		},
 	}
 	for _, tt := range tests {

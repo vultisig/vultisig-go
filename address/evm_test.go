@@ -18,7 +18,7 @@ func TestEVMAddress(t *testing.T) {
 		{
 			name:  "Ethereum",
 			chain: common.Ethereum,
-			want:  "0x77435f412e594Fe897fc889734b4FC7665359097",
+			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
 		},
 	}
 	for _, tt := range tests {

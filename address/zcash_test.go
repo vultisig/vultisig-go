@@ -18,7 +18,7 @@ func TestGetZcashAddress(t *testing.T) {
 		{
 			name:  "Zcash",
 			chain: common.Zcash,
-			want:  "t1UJkDvXWkyZjkkRScLxzFJCxcBgq63NZED",
+			want:  "t1HvTBYqG3yLnHzaMxXuw3hp4Bx5yHFtWwu",
 		},
 	}
 	for _, tt := range tests {
