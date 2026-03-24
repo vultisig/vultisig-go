@@ -9,16 +9,16 @@ import (
 	"github.com/vultisig/vultisig-go/common"
 )
 
-func TestGetBitcoinAddress(t *testing.T) {
+func TestGetDashAddress(t *testing.T) {
 	tests := []struct {
 		name  string
 		chain common.Chain
 		want  string
 	}{
 		{
-			name:  "Bitcoin",
-			chain: common.Bitcoin,
-			want:  "bc1qf7fmzrldk8jl6y498a4vulvsq3ex22855cljxm",
+			name:  "Dash",
+			chain: common.Dash,
+			want:  "Xi4XjARgSbmaSVF1h9E6fVhNH95eoQpGNb",
 		},
 	}
 	for _, tt := range tests {
@@ -28,7 +28,7 @@ func TestGetBitcoinAddress(t *testing.T) {
 				t.Error(err)
 				t.FailNow()
 			}
-			got, err := GetBitcoinAddress(childPublicKey)
+			got, err := GetDashAddress(childPublicKey)
 			if err != nil {
 				t.Error(err)
 				t.FailNow()

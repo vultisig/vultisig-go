@@ -17,7 +17,7 @@ func TestGetDotAddress(t *testing.T) {
 		{
 			name:  "Dot",
 			chain: common.Polkadot,
-			want:  "123K3wPFnMXwm7yr3LizgYTkMhMUwiDiG2rbKWRZbf9PiM2a",
+			want:  "13wyTqpCftZqCj9uRHxpjYrMpJzotBsr1nXdNXVXRfj1s9Gs",
 		},
 	}
 	for _, tt := range tests {

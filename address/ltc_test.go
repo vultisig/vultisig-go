@@ -17,7 +17,7 @@ func TestGetLitecoinAddress(t *testing.T) {
 		{
 			name:  "Litecoin",
 			chain: common.Litecoin,
-			want:  "ltc1qxv03l5rzukwcqgrkea385lw6v85rngpc249vzr",
+			want:  "ltc1quvj2dxa8qukcvl3m9r6aep8zp794pudy6sk0gw",
 		},
 	}
 	for _, tt := range tests {

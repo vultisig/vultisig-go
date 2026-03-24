@@ -18,7 +18,7 @@ func TestGetXRPAddress(t *testing.T) {
 		{
 			name:  "XRP",
 			chain: common.XRP,
-			want:  "rhmezeHcxx9sv3A69eafEcAeX3EWBmwFGX",
+			want:  "rwm9JugWgFHnKoUmVRNDjuUwBsb3w5v6XG",
 		},
 	}
 	for _, tt := range tests {

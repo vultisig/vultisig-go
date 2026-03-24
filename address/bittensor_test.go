@@ -8,25 +8,26 @@ import (
 	"github.com/vultisig/vultisig-go/common"
 )
 
-func TestGetSolAddress(t *testing.T) {
+func TestGetBittensorAddress(t *testing.T) {
 	tests := []struct {
 		name  string
 		chain common.Chain
 		want  string
 	}{
 		{
-			name:  "Solana",
-			chain: common.Solana,
-			want:  "9n22P31fnT9HscWos3jLEgvPG4HHwQehMJ8dhby18hcy",
+			name:  "Bittensor",
+			chain: common.Bittensor,
+			want:  "5F1gKWZ8p7JMmC9PTeupbQ2Cxh1ABtKhwHo9DEWAsahVgVnU",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetSolAddress(testEdDSAPublicKey)
+			got, err := GetBittensorAddress(testEdDSAPublicKey)
 			if err != nil {
 				t.Error(err)
 				t.FailNow()
 			}
+			t.Logf("Got: %s", got)
 			assert.Equal(t, tt.want, got)
 		})
 	}

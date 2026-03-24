@@ -8,21 +8,21 @@ import (
 	"github.com/vultisig/vultisig-go/common"
 )
 
-func TestGetSolAddress(t *testing.T) {
+func TestGetTonAddress(t *testing.T) {
 	tests := []struct {
 		name  string
 		chain common.Chain
 		want  string
 	}{
 		{
-			name:  "Solana",
-			chain: common.Solana,
-			want:  "9n22P31fnT9HscWos3jLEgvPG4HHwQehMJ8dhby18hcy",
+			name:  "Ton",
+			chain: common.Ton,
+			want:  "UQCffA0At2bHaJ9jbtjkfekp4gq3JxU411fRGeJe80nGm8rx",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetSolAddress(testEdDSAPublicKey)
+			got, err := GetTonAddress(testEdDSAPublicKey)
 			if err != nil {
 				t.Error(err)
 				t.FailNow()

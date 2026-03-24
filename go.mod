@@ -22,7 +22,8 @@ require (
 	github.com/vultisig/go-wrappers v0.0.0-20250716071337-34a5c0f4d6e0
 	github.com/vultisig/mobile-tss-lib v0.0.0-20250316003201-2e7e570a4a74
 	github.com/vultisig/vultiserver v0.0.0-20250715212748-4b23f9849e4b
-	golang.org/x/crypto v0.36.0
+	github.com/xssnick/tonutils-go v1.16.0
+	golang.org/x/crypto v0.45.0
 	google.golang.org/protobuf v1.36.6
 )
 
@@ -36,6 +37,7 @@ require (
 	cosmossdk.io/math v1.2.0 // indirect
 	cosmossdk.io/store v1.0.2 // indirect
 	cosmossdk.io/x/tx v0.13.0 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/DataDog/zstd v1.5.5 // indirect
 	github.com/agl/ed25519 v0.0.0-20200225211852-fd4d107ace12 // indirect
 	github.com/aws/aws-sdk-go v1.55.7 // indirect
@@ -132,9 +134,9 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250106144421-5f5ef82da422 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/grpc v1.71.0 // indirect

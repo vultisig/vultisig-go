@@ -44,6 +44,11 @@ const (
 	Tron
 	Mantle
 	Zcash
+	Bittensor
+	Cardano
+	Akash
+	Hyperliquid
+	Sei
 )
 
 var chainToString = map[Chain]string{
@@ -79,6 +84,11 @@ var chainToString = map[Chain]string{
 	Tron:         "Tron",
 	Mantle:       "Mantle",
 	Zcash:        "Zcash",
+	Bittensor:    "Bittensor",
+	Cardano:      "Cardano",
+	Akash:        "Akash",
+	Hyperliquid:  "Hyperliquid",
+	Sei:          "Sei",
 }
 
 func FromString(str string) (Chain, error) {
@@ -123,6 +133,11 @@ var chainDerivePath = map[Chain]string{
 	Tron:         "m/44'/195'/0'/0/0",
 	Mantle:       "m/44'/60'/0'/0/0",
 	Zcash:        "m/44'/133'/0'/0/0",
+	Bittensor:    "",
+	Cardano:      "",
+	Akash:        "m/44'/118'/0'/0/0",
+	Hyperliquid:  "m/44'/60'/0'/0/0",
+	Sei:          "m/44'/60'/0'/0/0",
 }
 
 func (c Chain) IsEvm() bool {
@@ -154,6 +169,10 @@ func (c Chain) EvmID() (*big.Int, error) {
 		return big.NewInt(324), nil
 	case Mantle:
 		return big.NewInt(5000), nil
+	case Hyperliquid:
+		return big.NewInt(999), nil
+	case Sei:
+		return big.NewInt(1329), nil
 	default:
 		return nil, fmt.Errorf("no EVM ID for this chain: %d", c)
 	}
@@ -225,6 +244,16 @@ func (c Chain) NativeSymbol() (string, error) {
 		return "MNT", nil
 	case Zcash:
 		return "ZEC", nil
+	case Bittensor:
+		return "TAO", nil
+	case Cardano:
+		return "ADA", nil
+	case Akash:
+		return "AKT", nil
+	case Hyperliquid:
+		return "HYPE", nil
+	case Sei:
+		return "SEI", nil
 	default:
 		return "", fmt.Errorf("unsupported chain: %v", c)
 	}
@@ -284,7 +313,7 @@ func (c Chain) GetDerivePath() string {
 }
 
 func (c Chain) IsEdDSA() bool {
-	if c == Solana || c == Sui || c == Polkadot || c == Ton {
+	if c == Solana || c == Sui || c == Polkadot || c == Ton || c == Bittensor || c == Cardano {
 		return true
 	}
 	return false

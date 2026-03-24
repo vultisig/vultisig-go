@@ -8,25 +8,26 @@ import (
 	"github.com/vultisig/vultisig-go/common"
 )
 
-func TestGetSolAddress(t *testing.T) {
+func TestGetCardanoAddress(t *testing.T) {
 	tests := []struct {
 		name  string
 		chain common.Chain
 		want  string
 	}{
 		{
-			name:  "Solana",
-			chain: common.Solana,
-			want:  "9n22P31fnT9HscWos3jLEgvPG4HHwQehMJ8dhby18hcy",
+			name:  "Cardano",
+			chain: common.Cardano,
+			want:  "addr1v8r9wtl43a6e2hn89xsgmgv3ccjmtud9psf7mkn3gy9l7gc7svmds",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetSolAddress(testEdDSAPublicKey)
+			got, err := GetCardanoAddress(testEdDSAPublicKey)
 			if err != nil {
 				t.Error(err)
 				t.FailNow()
 			}
+			t.Logf("Got: %s", got)
 			assert.Equal(t, tt.want, got)
 		})
 	}

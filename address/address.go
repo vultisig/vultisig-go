@@ -55,12 +55,15 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 		address, err = GetBech32Address(publicKey, `terra`)
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.Osmosis:
-		address, err = GetBech32Address(publicKey, `osmosis`)
+		address, err = GetBech32Address(publicKey, `osmo`)
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.Noble:
 		address, err = GetBech32Address(publicKey, `noble`)
 		return address, publicKey, chain.IsEdDSA(), err
-	case common.Arbitrum, common.Base, common.BscChain, common.Ethereum, common.Polygon, common.Blast, common.Avalanche, common.Optimism, common.CronosChain, common.Zksync, common.Mantle:
+	case common.Akash:
+		address, err = GetBech32Address(publicKey, `akash`)
+		return address, publicKey, chain.IsEdDSA(), err
+	case common.Arbitrum, common.Base, common.BscChain, common.Ethereum, common.Polygon, common.Blast, common.Avalanche, common.Optimism, common.CronosChain, common.Zksync, common.Mantle, common.Hyperliquid, common.Sei:
 		address, err = GetEVMAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.Sui:
@@ -80,6 +83,18 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.XRP:
 		address, err = GetXRPAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
+	case common.Polkadot:
+		address, err = GetDotAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
+	case common.Bittensor:
+		address, err = GetBittensorAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
+	case common.Cardano:
+		address, err = GetCardanoAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
+	case common.Ton:
+		address, err = GetTonAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
 	default:
 		return "", "", false, fmt.Errorf("unsupported chain: %s", chain)
