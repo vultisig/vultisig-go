@@ -9,26 +9,16 @@ import (
 	"github.com/vultisig/vultisig-go/common"
 )
 
-func TestEVMAddress(t *testing.T) {
+func TestGetDashAddress(t *testing.T) {
 	tests := []struct {
 		name  string
 		chain common.Chain
 		want  string
 	}{
 		{
-			name:  "Ethereum",
-			chain: common.Ethereum,
-			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
-		},
-		{
-			name:  "Hyperliquid",
-			chain: common.Hyperliquid,
-			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
-		},
-		{
-			name:  "Sei",
-			chain: common.Sei,
-			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
+			name:  "Dash",
+			chain: common.Dash,
+			want:  "Xi4XjARgSbmaSVF1h9E6fVhNH95eoQpGNb",
 		},
 	}
 	for _, tt := range tests {
@@ -38,7 +28,7 @@ func TestEVMAddress(t *testing.T) {
 				t.Error(err)
 				t.FailNow()
 			}
-			got, err := GetEVMAddress(childPublicKey)
+			got, err := GetDashAddress(childPublicKey)
 			if err != nil {
 				t.Error(err)
 				t.FailNow()

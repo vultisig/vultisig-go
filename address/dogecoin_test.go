@@ -9,26 +9,16 @@ import (
 	"github.com/vultisig/vultisig-go/common"
 )
 
-func TestEVMAddress(t *testing.T) {
+func TestGetDogecoinAddress(t *testing.T) {
 	tests := []struct {
 		name  string
 		chain common.Chain
 		want  string
 	}{
 		{
-			name:  "Ethereum",
-			chain: common.Ethereum,
-			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
-		},
-		{
-			name:  "Hyperliquid",
-			chain: common.Hyperliquid,
-			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
-		},
-		{
-			name:  "Sei",
-			chain: common.Sei,
-			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
+			name:  "Dogecoin",
+			chain: common.Dogecoin,
+			want:  "DRWGYYXGHheFSjRBHQNePRf79erLqUWos6",
 		},
 	}
 	for _, tt := range tests {
@@ -38,7 +28,7 @@ func TestEVMAddress(t *testing.T) {
 				t.Error(err)
 				t.FailNow()
 			}
-			got, err := GetEVMAddress(childPublicKey)
+			got, err := GetDogecoinAddress(childPublicKey)
 			if err != nil {
 				t.Error(err)
 				t.FailNow()

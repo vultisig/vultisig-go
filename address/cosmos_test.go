@@ -70,6 +70,12 @@ func TestGetBech32Address(t *testing.T) {
 			hrp:   "akash",
 			want:  "akash1p46u8ctucfrcwwx49004e0lg8unzr87a3n52y4",
 		},
+		{
+			name:  "Dydx",
+			chain: common.Dydx,
+			hrp:   "dydx",
+			want:  "dydx1p46u8ctucfrcwwx49004e0lg8unzr87a43hfac",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
