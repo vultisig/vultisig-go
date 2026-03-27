@@ -3,6 +3,8 @@ package address
 import (
 	"encoding/hex"
 	"fmt"
+
+	"golang.org/x/crypto/blake2b"
 )
 
 func GetCardanoAddress(hexPublicKey string) (string, error) {
@@ -15,7 +17,10 @@ func GetCardanoAddress(hexPublicKey string) (string, error) {
 	}
 
 	// Blake2b-224 hash of the spending key
-	hasher := blake2bNew(28)
+	hasher, err := blake2b.New(28, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create blake2b hasher: %w", err)
+	}
 	hasher.Write(pubKeyBytes)
 	keyHash := hasher.Sum(nil)
 

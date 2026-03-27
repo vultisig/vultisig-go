@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+
+	"golang.org/x/crypto/ripemd160"
 )
 
 // Zcash mainnet address prefixes (2 bytes)
@@ -31,8 +33,9 @@ func GetZcashAddress(hexPublicKey string) (string, error) {
 // hash160 computes RIPEMD160(SHA256(data))
 func hash160(data []byte) []byte {
 	sha := sha256.Sum256(data)
-	ripemd := ripemd160Sum(sha[:])
-	return ripemd[:]
+	ripemd := ripemd160.New()
+	ripemd.Write(sha[:])
+	return ripemd.Sum(nil)
 }
 
 // encodeZcashAddress encodes a hash with prefix to a base58check address
@@ -91,4 +94,3 @@ func base58Encode(data []byte) string {
 
 	return string(result)
 }
-
