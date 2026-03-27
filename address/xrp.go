@@ -1,13 +1,9 @@
 package address
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"strings"
-
-	"github.com/cosmos/btcutil/base58"
-	"golang.org/x/crypto/ripemd160"
 )
 
 // Base58 alphabet used by XRP
@@ -21,35 +17,20 @@ func GetXRPAddress(hexPublicKey string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid hex public key: %v", err)
 	}
-	sha := sha256.New()
-	sha.Write(publicKey)
-	hash := sha.Sum(nil)
 
-	ripemd := ripemd160.New()
-	ripemd.Write(hash)
-	hash = ripemd.Sum(nil)
+	// Hash160 (SHA256 → RIPEMD160) then base58check with version 0x00
+	h160 := hash160(publicKey)
+	data := append([]byte{0}, h160...)
+	base58Addr := base58CheckEncode(data)
 
-	versionHash := append([]byte{0}, hash...)
-
-	sha = sha256.New()
-	sha.Write(versionHash)
-	hash = sha.Sum(nil)
-
-	sha = sha256.New()
-	sha.Write(hash)
-	hash = sha.Sum(nil)
-
-	checksum := hash[:4]
-
-	finalHash := append(versionHash, checksum...)
-	base58Addr := base58.Encode([]byte(finalHash))
-	result := ""
-	for _, b := range base58Addr {
-		index := strings.Index(base58Alphabet, string(b))
+	// Translate from standard base58 alphabet to XRP alphabet
+	result := make([]byte, len(base58Addr))
+	for i, b := range []byte(base58Addr) {
+		index := strings.IndexByte(base58Alphabet, b)
 		if index == -1 || index >= len(xrpAlphabet) {
 			return "", fmt.Errorf("invalid base58 character: %s", string(b))
 		}
-		result += string(xrpAlphabet[index])
+		result[i] = xrpAlphabet[index]
 	}
-	return result, nil
+	return string(result), nil
 }

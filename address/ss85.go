@@ -3,7 +3,6 @@ package address
 import (
 	"fmt"
 
-	"github.com/cosmos/btcutil/base58"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -22,7 +21,7 @@ func SS58Encode(pubkey []byte, format uint16) (string, error) {
 	}
 	body := append(prefix, pubkey...)
 	hash := ss58Hash(body)
-	return base58.Encode(append(body, hash[:2]...)), nil
+	return base58Encode(append(body, hash[:2]...)), nil
 }
 
 func ss58Hash(data []byte) [64]byte {
