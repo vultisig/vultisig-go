@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/vultisig/mobile-tss-lib/tss"
 	"github.com/vultisig/vultisig-go/common"
 )
 
@@ -74,7 +73,7 @@ func TestGetAddress(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 			// We don't support deriving the public key for EdDSA chains
 			if !tt.isEdDSA {
-				expectedPublicKey, err := tss.GetDerivedPubKey(tt.inputKey, testHexChainCode, tt.chain.GetDerivePath(), tt.chain.IsEdDSA())
+				expectedPublicKey, err := getDerivedPubKey(tt.inputKey, testHexChainCode, tt.chain.GetDerivePath())
 				if err != nil {
 					t.Error(err)
 					t.FailNow()

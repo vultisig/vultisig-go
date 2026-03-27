@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vultisig/mobile-tss-lib/tss"
-
+	
 	"github.com/vultisig/vultisig-go/common"
 )
 
@@ -79,7 +78,7 @@ func TestGetBech32Address(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			childPublicKey, err := tss.GetDerivedPubKey(testECDSAPublicKey, testHexChainCode, tt.chain.GetDerivePath(), false)
+			childPublicKey, err := getDerivedPubKey(testECDSAPublicKey, testHexChainCode, tt.chain.GetDerivePath())
 			if err != nil {
 				t.Error(err)
 				t.FailNow()
