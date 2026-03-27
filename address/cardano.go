@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -30,5 +29,5 @@ func GetCardanoAddress(hexPublicKey string) (string, error) {
 	addressData[0] = 0x61
 	copy(addressData[1:], keyHash)
 
-	return sdk.Bech32ifyAddressBytes("addr", addressData)
+	return bech32ifyAddressBytes("addr", addressData)
 }
