@@ -1,10 +1,6 @@
 package address
 
-import (
-	"fmt"
-
-	"golang.org/x/crypto/blake2b"
-)
+import "fmt"
 
 // SS58Encode encodes data and format identifier to an SS58 checksumed string.
 func SS58Encode(pubkey []byte, format uint16) (string, error) {
@@ -26,5 +22,5 @@ func SS58Encode(pubkey []byte, format uint16) (string, error) {
 
 func ss58Hash(data []byte) [64]byte {
 	prefix := []byte("SS58PRE")
-	return blake2b.Sum512(append(prefix, data...))
+	return blake2bSum512(append(prefix, data...))
 }
