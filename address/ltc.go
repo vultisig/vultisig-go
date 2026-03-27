@@ -3,10 +3,6 @@ package address
 import (
 	"encoding/hex"
 	"fmt"
-
-	"github.com/btcsuite/btcd/btcutil"
-	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
-	"github.com/ltcsuite/ltcd/ltcutil"
 )
 
 func GetLitecoinAddress(hexPublicKey string) (string, error) {
@@ -14,10 +10,7 @@ func GetLitecoinAddress(hexPublicKey string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid derived ECDSA public key: %w", err)
 	}
-	witnessProgram := btcutil.Hash160(pubKeyBytes)
-	conv, err := ltcutil.NewAddressWitnessPubKeyHash(witnessProgram, &ltcchaincfg.MainNetParams)
-	if err != nil {
-		return "", fmt.Errorf("fail to get witness public key hash: %w", err)
-	}
-	return conv.EncodeAddress(), nil
+	witnessProgram := hash160(pubKeyBytes)
+	// P2WPKH: witness version 0 + 20-byte keyhash, bech32 with "ltc" HRP
+	return segwitEncode("ltc", 0, witnessProgram)
 }

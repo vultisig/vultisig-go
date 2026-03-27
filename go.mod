@@ -9,8 +9,6 @@ require (
 	github.com/gcash/bchutil v0.0.0-20210113190856-6ea28dff4000
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.13.3
-	github.com/ltcsuite/ltcd v0.23.5
-	github.com/ltcsuite/ltcd/ltcutil v1.1.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
@@ -40,10 +38,7 @@ require (
 	github.com/holiman/uint256 v1.3.2 // indirect
 	github.com/ipfs/go-log v1.0.5 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
-	github.com/ltcsuite/ltcd/btcec/v2 v2.3.2 // indirect
-	github.com/ltcsuite/ltcd/chaincfg/chainhash v1.0.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
@@ -60,7 +55,6 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
 replace (
