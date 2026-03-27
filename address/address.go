@@ -3,8 +3,6 @@ package address
 import (
 	"fmt"
 
-	"github.com/vultisig/mobile-tss-lib/tss"
-
 	"github.com/vultisig/vultisig-go/common/chain"
 )
 
@@ -15,7 +13,7 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, c chain.Chain) (a
 	}
 
 	if !c.IsEdDSA() {
-		publicKey, err = tss.GetDerivedPubKey(rootHexPublicKey, rootChainCode, c.GetDerivePath(), c.IsEdDSA())
+		publicKey, err = getDerivedPubKey(rootHexPublicKey, rootChainCode, c.GetDerivePath())
 		if err != nil {
 			return "", "", false, fmt.Errorf("failed to derive public key: %w", err)
 		}
