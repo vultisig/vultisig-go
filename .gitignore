@@ -45,3 +45,6 @@ guide.md
 verifier.json
 
 zz_scripts/*
+
+# Claude Code local config (developer-specific, not for version control)
+.claude/settings.local.json

@@ -3,8 +3,6 @@ package address
 import (
 	"encoding/hex"
 	"fmt"
-
-	"github.com/cosmos/btcutil/base58"
 )
 
 func GetSolAddress(hexPublicKey string) (string, error) {
@@ -12,5 +10,5 @@ func GetSolAddress(hexPublicKey string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid derived EdDSA public key: %w", err)
 	}
-	return base58.Encode(pubKeyBytes), nil
+	return base58Encode(pubKeyBytes), nil
 }

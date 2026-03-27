@@ -1,13 +1,17 @@
-package address
+// Package ss58 implements Substrate SS58 address encoding.
+// It depends on golang.org/x/crypto/blake2b and is kept in a sub-package so
+// that the parent encoding package remains dependency-free.
+package ss58
 
 import (
 	"fmt"
 
-	"github.com/cosmos/btcutil/base58"
+	"github.com/vultisig/vultisig-go/encoding"
 	"golang.org/x/crypto/blake2b"
 )
 
-// SS58Encode encodes data and format identifier to an SS58 checksumed string.
+// SS58Encode encodes a Substrate public key to SS58 format.
+// format is the network prefix: 0 = Polkadot, 2 = Kusama, 42 = generic/Bittensor, etc.
 func SS58Encode(pubkey []byte, format uint16) (string, error) {
 	ident := format & 0b0011_1111_1111_1111
 	var prefix []byte
@@ -22,10 +26,9 @@ func SS58Encode(pubkey []byte, format uint16) (string, error) {
 	}
 	body := append(prefix, pubkey...)
 	hash := ss58Hash(body)
-	return base58.Encode(append(body, hash[:2]...)), nil
+	return encoding.Base58Encode(append(body, hash[:2]...)), nil
 }
 
 func ss58Hash(data []byte) [64]byte {
-	prefix := []byte("SS58PRE")
-	return blake2b.Sum512(append(prefix, data...))
+	return blake2b.Sum512(append([]byte("SS58PRE"), data...))
 }

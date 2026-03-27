@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vultisig/mobile-tss-lib/tss"
-
+	
 	"github.com/vultisig/vultisig-go/common"
 )
 
@@ -23,7 +22,7 @@ func TestTronAddress(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			childPublicKey, err := tss.GetDerivedPubKey(testECDSAPublicKey, testHexChainCode, tt.chain.GetDerivePath(), false)
+			childPublicKey, err := getDerivedPubKey(testECDSAPublicKey, testHexChainCode, tt.chain.GetDerivePath())
 			if err != nil {
 				t.Error(err)
 				t.FailNow()
@@ -40,7 +39,7 @@ func TestTronAddress(t *testing.T) {
 
 func TestTronAddressFormat(t *testing.T) {
 	// Test that the generated address starts with "T" (mainnet) and has correct length
-	childPublicKey, err := tss.GetDerivedPubKey(testECDSAPublicKey, testHexChainCode, common.Tron.GetDerivePath(), false)
+	childPublicKey, err := getDerivedPubKey(testECDSAPublicKey, testHexChainCode, common.Tron.GetDerivePath())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +58,7 @@ func TestTronAddressFormat(t *testing.T) {
 func TestTronAddressDerivation(t *testing.T) {
 	// Verify the address derivation works correctly with EVM-style derivation
 	// TRON uses the same key derivation as Ethereum, just different encoding
-	childPublicKey, err := tss.GetDerivedPubKey(testECDSAPublicKey, testHexChainCode, common.Tron.GetDerivePath(), false)
+	childPublicKey, err := getDerivedPubKey(testECDSAPublicKey, testHexChainCode, common.Tron.GetDerivePath())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +69,7 @@ func TestTronAddressDerivation(t *testing.T) {
 	}
 
 	// Get the Ethereum address for comparison
-	evmChildPublicKey, err := tss.GetDerivedPubKey(testECDSAPublicKey, testHexChainCode, common.Ethereum.GetDerivePath(), false)
+	evmChildPublicKey, err := getDerivedPubKey(testECDSAPublicKey, testHexChainCode, common.Ethereum.GetDerivePath())
 	if err != nil {
 		t.Fatal(err)
 	}

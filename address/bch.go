@@ -4,9 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/gcash/bchd/chaincfg"
-	"github.com/gcash/bchutil"
+	"github.com/vultisig/vultisig-go/encoding"
 )
 
 func GetBitcoinCashAddress(hexPublicKey string) (string, error) {
@@ -14,10 +12,11 @@ func GetBitcoinCashAddress(hexPublicKey string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid derived ECDSA public key: %w", err)
 	}
-	witnessProgram := btcutil.Hash160(pubKeyBytes)
-	conv, err := bchutil.NewAddressPubKeyHash(witnessProgram, &chaincfg.MainNetParams)
+	pubKeyHash := hash160(pubKeyBytes)
+	addr, err := encoding.CashAddrEncode("bitcoincash", 0x00, pubKeyHash)
 	if err != nil {
-		return "", fmt.Errorf("fail to get public key hash: %w", err)
+		return "", err
 	}
-	return conv.EncodeAddress(), nil
+	// Strip "bitcoincash:" prefix to match EncodeAddress behavior.
+	return addr[len("bitcoincash:"):], nil
 }
