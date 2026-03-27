@@ -274,12 +274,11 @@ func (c *Chain) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &chainStr); err != nil {
 		return err
 	}
-	for key, value := range chainToString {
-		if value == chainStr {
-			*c = key
-			return nil
-		}
+	chain, err := FromString(chainStr)
+	if err != nil {
+		return fmt.Errorf("unknown chain: %s", chainStr)
 	}
+	*c = chain
 	return nil
 }
 func (c Chain) Value() (driver.Value, error) {
@@ -292,16 +291,20 @@ func (c *Chain) Scan(value interface{}) error {
 		return nil
 	}
 
-	str, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to scan Chain enum: %v", value)
+	var str string
+	switch v := value.(type) {
+	case []byte:
+		str = string(v)
+	case string:
+		str = v
+	default:
+		return fmt.Errorf("failed to scan Chain enum: unexpected type %T", value)
 	}
-	for key, value := range chainToString {
-		if value == string(str) {
-			*c = key
-			return nil
-		}
+	chain, err := FromString(str)
+	if err != nil {
+		return fmt.Errorf("unknown chain: %s", str)
 	}
+	*c = chain
 	return nil
 }
 
