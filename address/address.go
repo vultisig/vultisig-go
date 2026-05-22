@@ -9,17 +9,59 @@ import (
 )
 
 // GetAddress returns the address, public key, isEdDSA, and error for the given public key and chain.
+//
+// `rootHexPublicKey` is interpreted PER CHAIN FAMILY:
+//   - For ECDSA chains (Bitcoin, EVM, Cosmos-family, Tron, XRP, …) it MUST
+//     be the 33-byte (66 hex chars) compressed secp256k1 root pubkey. The
+//     function then BIP-32 derives along `chain.GetDerivePath()`.
+//   - For EdDSA chains (Solana, Sui, Polkadot, Ton, Cardano, Bittensor) it
+//     MUST be the 32-byte (64 hex chars) Ed25519 root pubkey. It is used
+//     directly with NO derivation step (Vultisig's MPC stack treats the
+//     EdDSA share's root key as the wallet key for these chains).
+//
+// **Common bug shape** (caught 2026-05-22 in agent-backend's `addressbook`
+// path): callers that only have the ECDSA pubkey on hand passed it for
+// EdDSA chains too. The chain-specific helpers (`GetSolAddress`,
+// `GetSuiAddress`, `GetDotAddress`, `GetBittensorAddress`) blindly
+// base58/blake2b'd whatever bytes they got, silently producing addresses
+// that decode to the ECDSA pubkey — confidently wrong, no error surfaced.
+// The 33-vs-32 byte length guards below catch the misuse at the dispatch
+// boundary so the failure is loud and actionable instead of garbage data
+// in `user_addresses`.
 func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chain) (address string, publicKey string, isEdDSA bool, err error) {
 	if len(rootHexPublicKey) != 66 && len(rootHexPublicKey) != 64 {
 		return "", "", false, fmt.Errorf("invalid public key: %s", rootHexPublicKey)
 	}
 
 	if !chain.IsEdDSA() {
+		// ECDSA chains require the 33-byte (66 hex chars) compressed
+		// secp256k1 root pubkey. A caller that passes a 32-byte EdDSA
+		// pubkey here would silently re-derive nonsense via BIP-32.
+		if len(rootHexPublicKey) != 66 {
+			return "", "", false, fmt.Errorf(
+				"ECDSA chain %q requires a 33-byte (66 hex chars) compressed secp256k1 root pubkey, got %d hex chars",
+				chain, len(rootHexPublicKey),
+			)
+		}
 		publicKey, err = tss.GetDerivedPubKey(rootHexPublicKey, rootChainCode, chain.GetDerivePath(), chain.IsEdDSA())
 		if err != nil {
 			return "", "", false, fmt.Errorf("failed to derive public key: %w", err)
 		}
 	} else {
+		// EdDSA chains require the 32-byte (64 hex chars) Ed25519 root
+		// pubkey. A caller that passes the 33-byte ECDSA pubkey here is
+		// the bug shape from agent-backend's pre-2026-05 addressbook
+		// path — every Solana / Sui / Polkadot / Ton / Cardano /
+		// Bittensor address it stored was the ECDSA pubkey
+		// base58/blake2b'd. Fail loud rather than emit a confidently-
+		// wrong address that decodes to a real-looking string but
+		// belongs to no on-chain account.
+		if len(rootHexPublicKey) != 64 {
+			return "", "", false, fmt.Errorf(
+				"EdDSA chain %q requires a 32-byte (64 hex chars) Ed25519 root pubkey, got %d hex chars (a compressed ECDSA pubkey was passed instead?)",
+				chain, len(rootHexPublicKey),
+			)
+		}
 		publicKey = rootHexPublicKey
 	}
 
