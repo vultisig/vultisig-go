@@ -99,3 +99,57 @@ func TestGetAddress(t *testing.T) {
 		})
 	}
 }
+
+// Regression pin for the 2026-05-22 bug shape: callers (notably
+// agent-backend's `addressbook.DeriveAndStore`) were passing the
+// 33-byte compressed ECDSA pubkey for EdDSA chains. Pre-fix, the
+// chain-specific helpers (`GetSolAddress`, `GetSuiAddress`, etc.)
+// happily base58/blake2b'd the ECDSA bytes and produced
+// confidently-wrong addresses (44 chars for Solana, 64 hex chars
+// for Sui, etc.) that decoded to the ECDSA pubkey itself — every
+// Solana / Sui / Polkadot / Ton / Cardano / Bittensor row in
+// `user_addresses` was garbage. Now `GetAddress` rejects the
+// 33-byte-for-EdDSA shape at the dispatch boundary so a missing
+// EdDSA pubkey surface in the caller fails loud.
+func TestGetAddress_RejectsECDSAPubkeyOnEdDSAChain(t *testing.T) {
+	edDSAChains := []common.Chain{
+		common.Solana,
+		common.Sui,
+		common.Polkadot,
+		common.Bittensor,
+		common.Ton,
+		common.Cardano,
+	}
+	for _, chain := range edDSAChains {
+		t.Run(chain.String(), func(t *testing.T) {
+			// Passing the 66-hex (33-byte) ECDSA root pubkey to an
+			// EdDSA chain MUST fail — that's the bug shape.
+			_, _, _, err := GetAddress(testECDSAPublicKey, testHexChainCode, chain)
+			if err == nil {
+				t.Fatalf("expected error rejecting 33-byte ECDSA pubkey for EdDSA chain %q, got nil", chain)
+			}
+			assert.Contains(t, err.Error(), "Ed25519")
+		})
+	}
+}
+
+func TestGetAddress_RejectsEdDSAPubkeyOnECDSAChain(t *testing.T) {
+	ecdsaChains := []common.Chain{
+		common.Bitcoin,
+		common.Ethereum,
+		common.GaiaChain,
+		common.Tron,
+	}
+	for _, chain := range ecdsaChains {
+		t.Run(chain.String(), func(t *testing.T) {
+			// Passing the 64-hex (32-byte) EdDSA root pubkey to an
+			// ECDSA chain MUST fail — symmetric to the EdDSA-on-
+			// ECDSA-chain case above.
+			_, _, _, err := GetAddress(testEdDSAPublicKey, testHexChainCode, chain)
+			if err == nil {
+				t.Fatalf("expected error rejecting 32-byte EdDSA pubkey for ECDSA chain %q, got nil", chain)
+			}
+			assert.Contains(t, err.Error(), "secp256k1")
+		})
+	}
+}
