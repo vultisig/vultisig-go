@@ -40,6 +40,20 @@ func TestGetAddress(t *testing.T) {
 			isEdDSA:  true,
 		},
 		{
+			name:     "Near",
+			chain:    common.Near,
+			want:     "8265ca17b04e49dd99535d869d3510f30b7f60d60fb884427d59b47d32e6be5e",
+			inputKey: testEdDSAPublicKey,
+			isEdDSA:  true,
+		},
+		{
+			name:     "Robinhood",
+			chain:    common.Robinhood,
+			want:     "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
+			inputKey: testECDSAPublicKey,
+			isEdDSA:  false,
+		},
+		{
 			name:     "Zcash",
 			chain:    common.Zcash,
 			want:     "t1HvTBYqG3yLnHzaMxXuw3hp4Bx5yHFtWwu",
@@ -119,6 +133,7 @@ func TestGetAddress_RejectsECDSAPubkeyOnEdDSAChain(t *testing.T) {
 		common.Bittensor,
 		common.Ton,
 		common.Cardano,
+		common.Near,
 	}
 	for _, chain := range edDSAChains {
 		t.Run(chain.String(), func(t *testing.T) {
@@ -151,5 +166,21 @@ func TestGetAddress_RejectsEdDSAPubkeyOnECDSAChain(t *testing.T) {
 			}
 			assert.Contains(t, err.Error(), "secp256k1")
 		})
+	}
+}
+
+func TestGetAddress_QBTC(t *testing.T) {
+	got, gotPublicKey, gotIsEdDSA, err := GetAddress(testMLDSAPublicKey, testHexChainCode, common.QBTC)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	assert.Equal(t, "qbtc1zpa0xxx9txtyhkypzsyfe94rwwx56kl4xvcwvq", got)
+	assert.Equal(t, testMLDSAPublicKey, gotPublicKey)
+	assert.False(t, gotIsEdDSA)
+
+	for _, key := range []string{testECDSAPublicKey, testEdDSAPublicKey} {
+		_, _, _, err := GetAddress(key, testHexChainCode, common.QBTC)
+		assert.ErrorContains(t, err, "ML-DSA-44")
 	}
 }

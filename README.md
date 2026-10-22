@@ -23,7 +23,7 @@ import (
 addr, pubKey, isEdDSA, err := address.GetAddress(hexPublicKey, chainCode, common.Bitcoin)
 ```
 
-Supported chains: Bitcoin, Bitcoin Cash, Litecoin, Dogecoin, Dash, Zcash, Ethereum (+ Arbitrum, Base, Optimism, Polygon, BSC, Avalanche, Blast, Cronos, zkSync, Mantle, Hyperliquid, Sei), Cosmos (+ THORChain, MayaChain, Kujira, Dydx, Terra, Osmosis, Noble, Akash), Solana, Sui, Polkadot, Bittensor, Cardano, TON, XRP, Tron.
+Supported chains: Bitcoin, Bitcoin Cash, Litecoin, Dogecoin, Dash, Zcash, Ethereum (+ Arbitrum, Base, Optimism, Polygon, BSC, Avalanche, Blast, Cronos, zkSync, Mantle, Hyperliquid, Sei, Robinhood), Cosmos (+ THORChain, MayaChain, Kujira, Dydx, Terra, Osmosis, Noble, Akash), Solana, Sui, Polkadot, Bittensor, Cardano, TON, NEAR, XRP, Tron, QBTC (from the vault's ML-DSA-44 key).
 
 ### `common`
 
