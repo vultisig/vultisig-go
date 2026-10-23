@@ -30,6 +30,11 @@ func TestEVMAddress(t *testing.T) {
 			chain: common.Sei,
 			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
 		},
+		{
+			name:  "Robinhood",
+			chain: common.Robinhood,
+			want:  "0x4e2FeBBb157dc6373b1e5fb908F0263c6041302C",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

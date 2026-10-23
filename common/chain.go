@@ -49,6 +49,9 @@ const (
 	Akash
 	Hyperliquid
 	Sei
+	Robinhood
+	Near
+	QBTC
 )
 
 var chainToString = map[Chain]string{
@@ -89,6 +92,9 @@ var chainToString = map[Chain]string{
 	Akash:        "Akash",
 	Hyperliquid:  "Hyperliquid",
 	Sei:          "Sei",
+	Robinhood:    "Robinhood",
+	Near:         "Near",
+	QBTC:         "QBTC",
 }
 
 func FromString(str string) (Chain, error) {
@@ -138,6 +144,9 @@ var chainDerivePath = map[Chain]string{
 	Akash:        "m/44'/118'/0'/0/0",
 	Hyperliquid:  "m/44'/60'/0'/0/0",
 	Sei:          "m/44'/60'/0'/0/0",
+	Robinhood:    "m/44'/60'/0'/0/0",
+	Near:         "",
+	QBTC:         "",
 }
 
 func (c Chain) IsEvm() bool {
@@ -173,6 +182,8 @@ func (c Chain) EvmID() (*big.Int, error) {
 		return big.NewInt(999), nil
 	case Sei:
 		return big.NewInt(1329), nil
+	case Robinhood:
+		return big.NewInt(4663), nil
 	default:
 		return nil, fmt.Errorf("no EVM ID for this chain: %d", c)
 	}
@@ -254,6 +265,12 @@ func (c Chain) NativeSymbol() (string, error) {
 		return "HYPE", nil
 	case Sei:
 		return "SEI", nil
+	case Robinhood:
+		return "ETH", nil
+	case Near:
+		return "NEAR", nil
+	case QBTC:
+		return "QBTC", nil
 	default:
 		return "", fmt.Errorf("unsupported chain: %v", c)
 	}
@@ -313,8 +330,14 @@ func (c Chain) GetDerivePath() string {
 }
 
 func (c Chain) IsEdDSA() bool {
-	if c == Solana || c == Sui || c == Polkadot || c == Ton || c == Bittensor || c == Cardano {
+	if c == Solana || c == Sui || c == Polkadot || c == Ton || c == Bittensor || c == Cardano || c == Near {
 		return true
 	}
 	return false
+}
+
+// IsMLDSA reports whether the chain signs with the vault's ML-DSA-44
+// (post-quantum) key rather than its ECDSA or EdDSA key.
+func (c Chain) IsMLDSA() bool {
+	return c == QBTC
 }

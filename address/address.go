@@ -14,10 +14,12 @@ import (
 //   - For ECDSA chains (Bitcoin, EVM, Cosmos-family, Tron, XRP, …) it MUST
 //     be the 33-byte (66 hex chars) compressed secp256k1 root pubkey. The
 //     function then BIP-32 derives along `chain.GetDerivePath()`.
-//   - For EdDSA chains (Solana, Sui, Polkadot, Ton, Cardano, Bittensor) it
-//     MUST be the 32-byte (64 hex chars) Ed25519 root pubkey. It is used
-//     directly with NO derivation step (Vultisig's MPC stack treats the
-//     EdDSA share's root key as the wallet key for these chains).
+//   - For EdDSA chains (Solana, Sui, Polkadot, Ton, Cardano, Bittensor,
+//     Near) it MUST be the 32-byte (64 hex chars) Ed25519 root pubkey. It
+//     is used directly with NO derivation step (Vultisig's MPC stack
+//     treats the EdDSA share's root key as the wallet key for these chains).
+//   - For ML-DSA chains (QBTC) it MUST be the vault's 1312-byte ML-DSA-44
+//     pubkey. It is used directly; `rootChainCode` is ignored.
 //
 // **Common bug shape** (caught 2026-05-22 in agent-backend's `addressbook`
 // path): callers that only have the ECDSA pubkey on hand passed it for
@@ -29,6 +31,14 @@ import (
 // boundary so the failure is loud and actionable instead of garbage data
 // in `user_addresses`.
 func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chain) (address string, publicKey string, isEdDSA bool, err error) {
+	if chain.IsMLDSA() {
+		address, err = GetQBTCAddress(rootHexPublicKey)
+		if err != nil {
+			return "", "", false, err
+		}
+		return address, rootHexPublicKey, false, nil
+	}
+
 	if len(rootHexPublicKey) != 66 && len(rootHexPublicKey) != 64 {
 		return "", "", false, fmt.Errorf("invalid public key: %s", rootHexPublicKey)
 	}
@@ -105,7 +115,7 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 	case common.Akash:
 		address, err = GetBech32Address(publicKey, `akash`)
 		return address, publicKey, chain.IsEdDSA(), err
-	case common.Arbitrum, common.Base, common.BscChain, common.Ethereum, common.Polygon, common.Blast, common.Avalanche, common.Optimism, common.CronosChain, common.Zksync, common.Mantle, common.Hyperliquid, common.Sei:
+	case common.Arbitrum, common.Base, common.BscChain, common.Ethereum, common.Polygon, common.Blast, common.Avalanche, common.Optimism, common.CronosChain, common.Zksync, common.Mantle, common.Hyperliquid, common.Sei, common.Robinhood:
 		address, err = GetEVMAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.Sui:
@@ -137,6 +147,9 @@ func GetAddress(rootHexPublicKey string, rootChainCode string, chain common.Chai
 		return address, publicKey, chain.IsEdDSA(), err
 	case common.Ton:
 		address, err = GetTonAddress(publicKey)
+		return address, publicKey, chain.IsEdDSA(), err
+	case common.Near:
+		address, err = GetNearAddress(publicKey)
 		return address, publicKey, chain.IsEdDSA(), err
 	default:
 		return "", "", false, fmt.Errorf("unsupported chain: %s", chain)
