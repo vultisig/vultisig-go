@@ -4,8 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/vultisig/vultisig-go/encoding"
 )
 
@@ -28,17 +26,14 @@ func GetTronAddress(hexPublicKey string) (string, error) {
 		return "", fmt.Errorf("invalid derived ECDSA public key: %w", err)
 	}
 
-	// Decompress the public key
-	pubKey, err := crypto.DecompressPubkey(pubKeyBytes)
+	// Get Ethereum-style address (Keccak256 of uncompressed pubkey, last 20 bytes)
+	ethAddr, err := keccakAddress(pubKeyBytes)
 	if err != nil {
-		return "", fmt.Errorf("failed to decompress public key: %w", err)
+		return "", err
 	}
 
-	// Get Ethereum-style address (Keccak256 of uncompressed pubkey, last 20 bytes)
-	ethAddr := crypto.PubkeyToAddress(*pubKey)
-
 	// Prepend TRON mainnet prefix (0x41)
-	tronAddrBytes := append([]byte{TronMainNetAddressPrefix}, ethAddr.Bytes()...)
+	tronAddrBytes := append([]byte{TronMainNetAddressPrefix}, ethAddr...)
 
 	// Base58Check encode
 	return encoding.Base58CheckEncode(tronAddrBytes), nil
