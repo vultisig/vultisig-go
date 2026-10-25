@@ -17,26 +17,33 @@ Derives addresses from ECDSA/EdDSA public keys for 30+ chains.
 ```go
 import (
     "github.com/vultisig/vultisig-go/address"
-    "github.com/vultisig/vultisig-go/common"
+    "github.com/vultisig/vultisig-go/common/chain"
 )
 
-addr, pubKey, isEdDSA, err := address.GetAddress(hexPublicKey, chainCode, common.Bitcoin)
+addr, pubKey, isEdDSA, err := address.GetAddress(hexPublicKey, chainCode, chain.Bitcoin)
 ```
 
 Supported chains: Bitcoin, Bitcoin Cash, Litecoin, Dogecoin, Dash, Zcash, Ethereum (+ Arbitrum, Base, Optimism, Polygon, BSC, Avalanche, Blast, Cronos, zkSync, Mantle, Hyperliquid, Sei, Robinhood), Cosmos (+ THORChain, MayaChain, Kujira, Dydx, Terra, Osmosis, Noble, Akash), Solana, Sui, Polkadot, Bittensor, Cardano, TON, NEAR, XRP, Tron, QBTC (from the vault's ML-DSA-44 key).
 
+### `common/chain`
+
+Chain definitions and per-chain metadata. Standard library only, so it is cheap to import.
+
+```go
+import "github.com/vultisig/vultisig-go/common/chain"
+
+c := chain.Bitcoin
+derivePath := c.GetDerivePath()     // "m/84'/0'/0'/0/0"
+isEdDSA := c.IsEdDSA()              // false
+evmID, _ := chain.Ethereum.EvmID()  // 1
+```
+
 ### `common`
 
-Chain definitions, vault encryption/decryption (AES-GCM), data compression (XZ), and shared utilities.
+Vault encryption/decryption (AES-GCM), data compression (XZ), and shared utilities. `common.Chain` and the chain constants are aliases for `common/chain`, kept for compatibility.
 
 ```go
 import "github.com/vultisig/vultisig-go/common"
-
-// Chain metadata
-chain := common.Bitcoin
-derivePath := chain.GetDerivePath()  // "m/84'/0'/0'/0/0"
-isEdDSA := chain.IsEdDSA()           // false
-evmID, _ := common.Ethereum.EvmID()  // 1
 
 // Vault encryption
 encrypted, err := common.EncryptVault("password", vaultBytes)
