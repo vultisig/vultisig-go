@@ -4,19 +4,12 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/vultisig/vultisig-go/encoding"
 )
 
-// DogeMainNetParams defines the network parameters for the Dogecoin main network.
-var DogeMainNetParams = chaincfg.Params{
-	Name: "mainnet",
-	Net:  0xc0c0c0c0, // Dogecoin mainnet magic bytes
-
-	// Address encoding magics
-	PubKeyHashAddrID: 0x1E, // starts with D
-	ScriptHashAddrID: 0x16, // starts with 9 or A
-}
+// DogecoinMainNetAddressPrefix is the version byte for Dogecoin P2PKH
+// addresses (D...).
+const DogecoinMainNetAddressPrefix = byte(0x1E)
 
 func GetDogecoinAddress(hexPublicKey string) (string, error) {
 	pubKeyBytes, err := hex.DecodeString(hexPublicKey)
@@ -25,12 +18,6 @@ func GetDogecoinAddress(hexPublicKey string) (string, error) {
 	}
 
 	// Dogecoin uses P2PKH addresses (no native SegWit support)
-	pubKeyHash := btcutil.Hash160(pubKeyBytes)
-	addr, err := btcutil.NewAddressPubKeyHash(pubKeyHash, &DogeMainNetParams)
-	if err != nil {
-		return "", fmt.Errorf("fail to get public key hash address: %w", err)
-	}
-
-	return addr.EncodeAddress(), nil
+	data := append([]byte{DogecoinMainNetAddressPrefix}, hash160(pubKeyBytes)...)
+	return encoding.Base58CheckEncode(data), nil
 }
-

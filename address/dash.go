@@ -3,6 +3,8 @@ package address
 import (
 	"encoding/hex"
 	"fmt"
+
+	"github.com/vultisig/vultisig-go/encoding"
 )
 
 // Dash mainnet address prefix (1 byte)
@@ -32,5 +34,5 @@ func encodeDashAddress(prefix []byte, hash []byte) string {
 	data := make([]byte, len(prefix)+len(hash))
 	copy(data, prefix)
 	copy(data[len(prefix):], hash)
-	return base58CheckEncode(data)
+	return encoding.Base58CheckEncode(data)
 }
