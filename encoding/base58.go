@@ -43,10 +43,16 @@ func Base58EncodeAlphabet(data []byte, alphabet string) string {
 // Base58CheckEncode appends a 4-byte double-SHA256 checksum and Base58-encodes
 // using the standard alphabet. Used by Bitcoin P2PKH/P2SH, Zcash, Dash, Dogecoin, etc.
 func Base58CheckEncode(data []byte) string {
+	return Base58CheckEncodeAlphabet(data, Base58Alphabet)
+}
+
+// Base58CheckEncodeAlphabet is Base58CheckEncode with a custom alphabet,
+// e.g. XRP's.
+func Base58CheckEncodeAlphabet(data []byte, alphabet string) string {
 	first := sha256.Sum256(data)
 	second := sha256.Sum256(first[:])
 	payload := make([]byte, 0, len(data)+4)
 	payload = append(payload, data...)
 	payload = append(payload, second[:4]...)
-	return Base58Encode(payload)
+	return Base58EncodeAlphabet(payload, alphabet)
 }

@@ -134,3 +134,16 @@ func TestBase58AddressPrefixes(t *testing.T) {
 		}
 	}
 }
+
+func TestBase58CheckEncodeAlphabet_XRP(t *testing.T) {
+	const xrpAlphabet = "rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz"
+	// XRP Ledger genesis account: version 0x00 + account ID.
+	b, err := hex.DecodeString("00b5f762798a53d543a014caf8b297cff8f2f937e8")
+	if err != nil {
+		t.Fatalf("bad test hex: %v", err)
+	}
+	got := encoding.Base58CheckEncodeAlphabet(b, xrpAlphabet)
+	if want := "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh"; got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
