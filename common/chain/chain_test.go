@@ -56,3 +56,28 @@ func TestNewChainMetadata(t *testing.T) {
 		})
 	}
 }
+
+func TestChainUnmarshalJSON(t *testing.T) {
+	var c Chain
+	require.NoError(t, json.Unmarshal([]byte(`"ethereum"`), &c))
+	assert.Equal(t, Ethereum, c)
+
+	c = Bitcoin
+	assert.Error(t, json.Unmarshal([]byte(`"NotAChain"`), &c))
+	assert.Equal(t, Bitcoin, c, "failed unmarshal must not modify the value")
+}
+
+func TestChainScan(t *testing.T) {
+	var c Chain
+	require.NoError(t, c.Scan([]byte("Solana")))
+	assert.Equal(t, Solana, c)
+	require.NoError(t, c.Scan("Bitcoin-Cash"))
+	assert.Equal(t, BitcoinCash, c)
+	require.NoError(t, c.Scan(nil))
+	assert.Equal(t, Undefined, c)
+
+	c = Bitcoin
+	assert.Error(t, c.Scan("NotAChain"))
+	assert.Error(t, c.Scan(42))
+	assert.Equal(t, Bitcoin, c, "failed scan must not modify the value")
+}
