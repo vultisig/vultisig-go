@@ -45,3 +45,9 @@ guide.md
 verifier.json
 
 zz_scripts/*
+
+# addrgen build output
+/addrgen
+
+# Claude Code local config (developer-specific, not for version control)
+.claude/settings.local.json
