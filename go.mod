@@ -3,7 +3,6 @@ module github.com/vultisig/vultisig-go
 go 1.24.2
 
 require (
-	github.com/cosmos/btcutil v1.0.5
 	github.com/ethereum/go-ethereum v1.15.11
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.13.3
