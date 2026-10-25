@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/crypto"
+
+	"github.com/vultisig/vultisig-go/encoding"
 )
 
 // TronMainNetAddressPrefix is the prefix byte for TRON mainnet addresses (0x41)
@@ -39,6 +41,6 @@ func GetTronAddress(hexPublicKey string) (string, error) {
 	tronAddrBytes := append([]byte{TronMainNetAddressPrefix}, ethAddr.Bytes()...)
 
 	// Base58Check encode
-	return base58CheckEncode(tronAddrBytes), nil
+	return encoding.Base58CheckEncode(tronAddrBytes), nil
 }
 
