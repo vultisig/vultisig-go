@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/cosmos/btcutil/base58"
+	"github.com/vultisig/vultisig-go/encoding"
 )
 
 // GetSolAddress encodes a 32-byte Ed25519 pubkey as a Solana base58 address.
@@ -28,5 +28,5 @@ func GetSolAddress(hexPublicKey string) (string, error) {
 			len(pubKeyBytes),
 		)
 	}
-	return base58.Encode(pubKeyBytes), nil
+	return encoding.Base58Encode(pubKeyBytes), nil
 }
